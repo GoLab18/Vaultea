@@ -29,11 +29,6 @@ KNOWN LIMITATIONS (TO FIX LATER)
    - Corruption will not be detected
 
    Fix: add checksum (e.g., xxHash/SHA-256 per blob)
-
-4. Unsafe reads
-   - No bounds validation during deserialization
-
-   Fix: validate buffer size before each read
 */
 
 #include "models/Folder.h"
