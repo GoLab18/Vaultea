@@ -1,6 +1,5 @@
 #include "Pager.h"
 
-#include <algorithm>
 #include <stdexcept>
 
 Pager::Pager(StorageEngine &storage, uint32_t pageSize, size_t maxPages)
