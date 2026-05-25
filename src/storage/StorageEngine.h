@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Constants.h"
 #include <cstdint>
 #include <fstream>
 #include <string>
@@ -17,7 +18,7 @@ public:
 
   void write(uint64_t offset, const uint8_t *data, uint64_t size);
 
-  std::vector<uint8_t> read(uint64_t offset, uint64_t size);
+  vault::storage::RawBytes read(uint64_t offset, uint64_t size);
 
   uint64_t append(const uint8_t *data, uint64_t size);
 

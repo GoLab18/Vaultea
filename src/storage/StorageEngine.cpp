@@ -1,4 +1,5 @@
 #include "StorageEngine.h"
+#include "Constants.h"
 
 #include <stdexcept>
 
@@ -38,8 +39,8 @@ void StorageEngine::write(uint64_t offset, const uint8_t *data, uint64_t size) {
   }
 }
 
-std::vector<uint8_t> StorageEngine::read(uint64_t offset, uint64_t size) {
-  std::vector<uint8_t> out(size);
+vault::storage::RawBytes StorageEngine::read(uint64_t offset, uint64_t size) {
+  vault::storage::RawBytes out(size);
 
   file.seekg(offset);
 

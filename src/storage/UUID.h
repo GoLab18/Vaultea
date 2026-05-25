@@ -9,8 +9,14 @@
 
 class UUID {
 public:
+  UUID() = default;
+  explicit UUID(const std::array<uint8_t, vault::storage::UUID_SIZE> &b);
+
   static UUID random();
   static UUID fromString(std::string_view str);
+  static UUID fromRaw(const std::array<uint8_t, vault::storage::UUID_SIZE> &b) {
+    return UUID{b};
+  }
 
   std::string toString() const;
 
@@ -23,9 +29,6 @@ public:
 
 private:
   std::array<uint8_t, vault::storage::UUID_SIZE> bytes{};
-
-  UUID() = default;
-  explicit UUID(const std::array<uint8_t, vault::storage::UUID_SIZE> &b);
 
   static uint8_t hexToByte(char c);
 };

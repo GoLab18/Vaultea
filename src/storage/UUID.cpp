@@ -71,6 +71,10 @@ UUID UUID::fromString(std::string_view str) {
   return UUID{bytes};
 }
 
+static UUID fromRaw(const std::array<uint8_t, vault::storage::UUID_SIZE> &b) {
+  return UUID{b};
+}
+
 std::string UUID::toString() const {
   std::string out(36, '\0');
 
