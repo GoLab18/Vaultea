@@ -1,22 +1,15 @@
-#include "CryptoService.h"
-#include "Constants.h"
-#include "storage/Constants.h"
 
-#include <array>
+#include "CryptoService.h"
+
 #include <sodium.h>
 #include <stdexcept>
 
 using namespace vault::crypto;
 
-std::vector<uint8_t>
-CryptoService::deriveMasterKey(const std::string &password,
-                               const std::vector<uint8_t> &salt) {
+Key CryptoService::deriveMasterKey(const std::string &password,
+                                   const Salt &salt) {
 
-  if (salt.size() != SALT_SIZE) {
-    throw std::runtime_error("Invalid salt size");
-  }
-
-  std::vector<uint8_t> key(KEY_SIZE);
+  Key key{};
 
   int result = crypto_pwhash(
       key.data(), key.size(), password.c_str(), password.size(), salt.data(),
@@ -31,14 +24,7 @@ CryptoService::deriveMasterKey(const std::string &password,
 }
 
 std::vector<uint8_t> CryptoService::encrypt(const std::vector<uint8_t> &data,
-                                            const std::vector<uint8_t> &key,
-                                            std::vector<uint8_t> &nonce) {
-
-  if (key.size() != KEY_SIZE) {
-    throw std::runtime_error("Invalid key size");
-  }
-
-  nonce.resize(NONCE_SIZE);
+                                            const Key &key, Nonce &nonce) {
 
   randombytes_buf(nonce.data(), nonce.size());
 
@@ -60,16 +46,8 @@ std::vector<uint8_t> CryptoService::encrypt(const std::vector<uint8_t> &data,
 }
 
 std::vector<uint8_t> CryptoService::decrypt(const std::vector<uint8_t> &cipher,
-                                            const std::vector<uint8_t> &key,
-                                            const std::vector<uint8_t> &nonce) {
-
-  if (key.size() != KEY_SIZE) {
-    throw std::runtime_error("Invalid key size");
-  }
-
-  if (nonce.size() != NONCE_SIZE) {
-    throw std::runtime_error("Invalid nonce size");
-  }
+                                            const Key &key,
+                                            const Nonce &nonce) {
 
   if (cipher.size() < MAC_SIZE) {
     throw std::runtime_error("Ciphertext too small");
@@ -93,37 +71,10 @@ std::vector<uint8_t> CryptoService::decrypt(const std::vector<uint8_t> &cipher,
   return plain;
 }
 
-std::array<uint8_t, vault::storage::UUID_SIZE>
-CryptoService::generateUUIDBytes() {
-  std::array<uint8_t, vault::storage::UUID_SIZE> uuid;
+Salt CryptoService::generateSalt() {
+  Salt salt{};
 
-  randombytes_buf(uuid.data(), uuid.size());
+  randombytes_buf(salt.data(), salt.size());
 
-  // UUID v4 variant bits
-  uuid[6] = (uuid[6] & 0x0F) | 0x40;
-  uuid[8] = (uuid[8] & 0x3F) | 0x80;
-
-  return uuid;
-}
-
-std::string CryptoService::generateUUID() {
-  auto uuid = generateUUIDBytes();
-
-  static constexpr char hex[] = "0123456789abcdef";
-
-  std::string out;
-  out.resize(36);
-
-  int j = 0;
-
-  for (int i = 0; i < 16; ++i) {
-    if (i == 4 || i == 6 || i == 8 || i == 10) {
-      out[j++] = '-';
-    }
-
-    out[j++] = hex[uuid[i] >> 4];
-    out[j++] = hex[uuid[i] & 0x0F];
-  }
-
-  return out;
+  return salt;
 }

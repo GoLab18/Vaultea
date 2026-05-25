@@ -1,6 +1,6 @@
 #pragma once
 
-#include "storage/Constants.h"
+#include "Constants.h"
 
 #include <cstdint>
 #include <string>
@@ -8,18 +8,16 @@
 
 class CryptoService {
 public:
-  std::vector<uint8_t> deriveMasterKey(const std::string &password,
-                                       const std::vector<uint8_t> &salt);
+  vault::crypto::Key deriveMasterKey(const std::string &password,
+                                     const vault::crypto::Salt &salt);
 
   std::vector<uint8_t> encrypt(const std::vector<uint8_t> &data,
-                               const std::vector<uint8_t> &key,
-                               std::vector<uint8_t> &nonce);
+                               const vault::crypto::Key &key,
+                               vault::crypto::Nonce &nonce);
 
   std::vector<uint8_t> decrypt(const std::vector<uint8_t> &cipher,
-                               const std::vector<uint8_t> &key,
-                               const std::vector<uint8_t> &nonce);
+                               const vault::crypto::Key &key,
+                               const vault::crypto::Nonce &nonce);
 
-  std::array<uint8_t, vault::storage::UUID_SIZE> generateUUIDBytes();
-
-  std::string generateUUID();
+  vault::crypto::Salt generateSalt();
 };
