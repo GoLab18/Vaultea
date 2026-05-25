@@ -1,13 +1,14 @@
 #include "Serialization.h"
+#include "storage/VaultPreamble.h"
 #include <cstring>
 #include <vector>
 
-std::vector<uint8_t> Serialization::serializeEntry(const VaultEntry &e) {
-  std::vector<uint8_t> out;
+RawBytes Serialization::serializeEntry(const VaultEntry &e) {
+  RawBytes out;
 
-  writeString(out, e.id);
+  writeUUID(out, e.id);
   writeString(out, e.name);
-  writeString(out, e.folderId);
+  writeUUID(out, e.folderId);
 
   write(out, e.createdAt);
   write(out, e.updatedAt);
@@ -55,13 +56,13 @@ std::vector<uint8_t> Serialization::serializeEntry(const VaultEntry &e) {
   return out;
 }
 
-VaultEntry Serialization::deserializeEntry(const std::vector<uint8_t> &data) {
+VaultEntry Serialization::deserializeEntry(const RawBytes &data) {
   VaultEntry e;
   size_t offset = 0;
 
-  e.id = readString(data, offset);
+  e.id = readUUID(data, offset);
   e.name = readString(data, offset);
-  e.folderId = readString(data, offset);
+  e.folderId = readUUID(data, offset);
 
   e.createdAt = read<uint64_t>(data, offset);
   e.updatedAt = read<uint64_t>(data, offset);
@@ -122,10 +123,10 @@ VaultEntry Serialization::deserializeEntry(const std::vector<uint8_t> &data) {
   return e;
 }
 
-std::vector<uint8_t> Serialization::serializeFolder(const Folder &f) {
-  std::vector<uint8_t> out;
+RawBytes Serialization::serializeFolder(const Folder &f) {
+  RawBytes out;
 
-  writeString(out, f.id);
+  writeUUID(out, f.id);
   writeString(out, f.name);
 
   write(out, f.createdAt);
@@ -134,11 +135,11 @@ std::vector<uint8_t> Serialization::serializeFolder(const Folder &f) {
   return out;
 }
 
-Folder Serialization::deserializeFolder(const std::vector<uint8_t> &data) {
+Folder Serialization::deserializeFolder(const RawBytes &data) {
   Folder f;
   size_t offset = 0;
 
-  f.id = readString(data, offset);
+  f.id = readUUID(data, offset);
   f.name = readString(data, offset);
 
   f.createdAt = read<uint64_t>(data, offset);
@@ -147,8 +148,8 @@ Folder Serialization::deserializeFolder(const std::vector<uint8_t> &data) {
   return f;
 }
 
-std::vector<uint8_t> Serialization::serializeIndex(const BTreeIndex &index) {
-  std::vector<uint8_t> out;
+RawBytes Serialization::serializeIndex(const BTreeIndex &index) {
+  RawBytes out;
 
   auto allEntries = index.all();
 
@@ -156,9 +157,9 @@ std::vector<uint8_t> Serialization::serializeIndex(const BTreeIndex &index) {
   write(out, count);
 
   for (const auto &e : allEntries) {
-    writeString(out, e.id);
+    writeUUID(out, e.id);
     writeString(out, e.name);
-    writeString(out, e.folderId);
+    writeUUID(out, e.folderId);
 
     write(out, e.offset);
     write(out, e.size);
@@ -170,8 +171,7 @@ std::vector<uint8_t> Serialization::serializeIndex(const BTreeIndex &index) {
   return out;
 }
 
-std::vector<IndexEntry>
-Serialization::deserializeIndex(const std::vector<uint8_t> &data) {
+std::vector<IndexEntry> Serialization::deserializeIndex(const RawBytes &data) {
   std::vector<IndexEntry> out;
   size_t offset = 0;
 
@@ -180,9 +180,9 @@ Serialization::deserializeIndex(const std::vector<uint8_t> &data) {
   for (uint32_t i = 0; i < count; i++) {
     IndexEntry e;
 
-    e.id = readString(data, offset);
+    e.id = readUUID(data, offset);
     e.name = readString(data, offset);
-    e.folderId = readString(data, offset);
+    e.folderId = readUUID(data, offset);
 
     e.offset = read<uint64_t>(data, offset);
     e.size = read<uint32_t>(data, offset);
@@ -196,8 +196,8 @@ Serialization::deserializeIndex(const std::vector<uint8_t> &data) {
   return out;
 }
 
-std::vector<uint8_t> Serialization::serializePreamble(const VaultPreamble &p) {
-  std::vector<uint8_t> out;
+RawBytes Serialization::serializePreamble(const VaultPreamble &p) {
+  RawBytes out;
 
   write(out, p.magic);
   write(out, p.version);
@@ -216,8 +216,7 @@ std::vector<uint8_t> Serialization::serializePreamble(const VaultPreamble &p) {
   return out;
 }
 
-VaultPreamble
-Serialization::deserializePreamble(const std::vector<uint8_t> &data) {
+VaultPreamble Serialization::deserializePreamble(const RawBytes &data) {
   VaultPreamble p{};
   size_t offset = 0;
 
@@ -239,8 +238,8 @@ Serialization::deserializePreamble(const std::vector<uint8_t> &data) {
   return p;
 }
 
-std::vector<uint8_t> Serialization::serializeHeader(const VaultHeader &h) {
-  std::vector<uint8_t> out;
+RawBytes Serialization::serializeHeader(const VaultHeader &h) {
+  RawBytes out;
 
   write(out, h.createdAt);
   write(out, h.updatedAt);
@@ -250,7 +249,7 @@ std::vector<uint8_t> Serialization::serializeHeader(const VaultHeader &h) {
   return out;
 }
 
-VaultHeader Serialization::deserializeHeader(const std::vector<uint8_t> &data) {
+VaultHeader Serialization::deserializeHeader(const RawBytes &data) {
   VaultHeader h;
   size_t offset = 0;
 
@@ -260,4 +259,77 @@ VaultHeader Serialization::deserializeHeader(const std::vector<uint8_t> &data) {
   h.folderCount = read<uint64_t>(data, offset);
 
   return h;
+}
+
+RawBytes Serialization::serializeEncryptedBlob(const EncryptedBlob &blob) {
+  RawBytes out;
+
+  write(out, blob.nonce);
+  write(out, static_cast<uint32_t>(blob.ciphertext.size()));
+
+  out.insert(out.end(), blob.ciphertext.begin(), blob.ciphertext.end());
+
+  return out;
+}
+
+EncryptedBlob Serialization::deserializeEncryptedBlob(const RawBytes &data) {
+  size_t offset = 0;
+
+  EncryptedBlob blob;
+
+  readInto(data, offset, blob.nonce);
+
+  uint32_t size = read<uint32_t>(data, offset);
+
+  if (offset + size > data.size()) {
+    throw std::runtime_error("EncryptedBlob corrupted or truncated");
+  }
+
+  blob.ciphertext.resize(size);
+
+  std::memcpy(blob.ciphertext.data(), data.data() + offset, size);
+
+  return blob;
+}
+
+void Serialization::writeString(RawBytes &out, const std::string &str) {
+  uint32_t size = static_cast<uint32_t>(str.size());
+  write(out, size);
+
+  size_t old = out.size();
+  out.resize(old + size);
+
+  std::memcpy(out.data() + old, str.data(), size);
+}
+
+std::string Serialization::readString(const RawBytes &data, size_t &offset) {
+  uint32_t size = read<uint32_t>(data, offset);
+
+  if (offset + size > data.size()) {
+    throw std::runtime_error("String exceeds serialization buffer");
+  }
+
+  std::string out(reinterpret_cast<const char *>(data.data() + offset), size);
+
+  offset += size;
+
+  return out;
+}
+
+void Serialization::writeUUID(RawBytes &out, const UUID &id) {
+  const auto &raw = id.raw();
+  out.insert(out.end(), raw.begin(), raw.end());
+}
+
+UUID Serialization::readUUID(const RawBytes &data, size_t &offset) {
+  if (offset + vault::storage::UUID_SIZE > data.size()) {
+    throw std::runtime_error("UUID out of bounds");
+  }
+
+  std::array<uint8_t, vault::storage::UUID_SIZE> buf{};
+
+  std::memcpy(buf.data(), data.data() + offset, buf.size());
+  offset += buf.size();
+
+  return UUID::fromRaw(buf);
 }

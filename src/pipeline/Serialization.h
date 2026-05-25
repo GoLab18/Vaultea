@@ -31,9 +31,13 @@ KNOWN LIMITATIONS (TO FIX LATER)
    Fix: add checksum (e.g., xxHash/SHA-256 per blob)
 */
 
+#include "models/EncryptedBlob.h"
 #include "models/Folder.h"
 #include "models/VaultEntry.h"
 #include "storage/BTreeIndex.h"
+#include "storage/Constants.h"
+#include "storage/VaultHeader.h"
+#include "storage/VaultPreamble.h"
 
 #include <cstdint>
 #include <cstring>
@@ -41,27 +45,36 @@ KNOWN LIMITATIONS (TO FIX LATER)
 #include <type_traits>
 #include <vector>
 
+using namespace vault::storage;
+
 class Serialization {
 public:
-  static std::vector<uint8_t> serializeEntry(const VaultEntry &entry);
-  static VaultEntry deserializeEntry(const std::vector<uint8_t> &data);
+  static RawBytes serializeEntry(const VaultEntry &entry);
+  static VaultEntry deserializeEntry(const RawBytes &data);
 
-  static std::vector<uint8_t> serializeFolder(const Folder &f);
-  static Folder deserializeFolder(const std::vector<uint8_t> &data);
+  static RawBytes serializeFolder(const Folder &f);
+  static Folder deserializeFolder(const RawBytes &data);
 
-  static std::vector<uint8_t> serializeIndex(const BTreeIndex &index);
-  static std::vector<IndexEntry>
-  deserializeIndex(const std::vector<uint8_t> &data);
+  static RawBytes serializeIndex(const BTreeIndex &index);
+  static std::vector<IndexEntry> deserializeIndex(const RawBytes &data);
 
-  static std::vector<uint8_t> serializePreamble(const VaultPreamble &p);
-  static VaultPreamble deserializePreamble(const std::vector<uint8_t> &data);
+  static RawBytes serializePreamble(const VaultPreamble &p);
+  static VaultPreamble deserializePreamble(const RawBytes &data);
 
-  static std::vector<uint8_t> serializeHeader(const VaultHeader &h);
-  static VaultHeader deserializeHeader(const std::vector<uint8_t> &data);
+  static RawBytes serializeHeader(const VaultHeader &h);
+  static VaultHeader deserializeHeader(const RawBytes &data);
+
+  static RawBytes serializeEncryptedBlob(const EncryptedBlob &blob);
+  static EncryptedBlob deserializeEncryptedBlob(const RawBytes &data);
+
+  static void writeString(RawBytes &out, const std::string &str);
+  static std::string readString(const RawBytes &data, size_t &offset);
+
+  static void writeUUID(RawBytes &out, const UUID &id);
+  static UUID readUUID(const RawBytes &data, size_t &offset);
 
 private:
-  template <typename T>
-  static void write(std::vector<uint8_t> &out, const T &value) {
+  template <typename T> static void write(RawBytes &out, const T &value) {
     static_assert(std::is_trivially_copyable_v<T>,
                   "T must be trivially copyable");
 
@@ -71,8 +84,7 @@ private:
     std::memcpy(out.data() + old, &value, sizeof(T));
   }
 
-  template <typename T>
-  static T read(const std::vector<uint8_t> &data, size_t &offset) {
+  template <typename T> static T read(const RawBytes &data, size_t &offset) {
     static_assert(std::is_trivially_copyable_v<T>,
                   "T must be trivially copyable");
 
@@ -89,34 +101,8 @@ private:
     return value;
   }
 
-  static void writeString(std::vector<uint8_t> &out, const std::string &str) {
-    uint32_t size = static_cast<uint32_t>(str.size());
-    write(out, size);
-
-    size_t old = out.size();
-    out.resize(old + size);
-
-    std::memcpy(out.data() + old, str.data(), size);
-  }
-
-  static std::string readString(const std::vector<uint8_t> &data,
-                                size_t &offset) {
-    uint32_t size = read<uint32_t>(data, offset);
-
-    if (offset + size > data.size()) {
-      throw std::runtime_error("String exceeds serialization buffer");
-    }
-
-    std::string out(reinterpret_cast<const char *>(data.data() + offset), size);
-
-    offset += size;
-
-    return out;
-  }
-
   template <typename T>
-  static void readInto(const std::vector<uint8_t> &data, size_t &offset,
-                       T &out) {
+  static void readInto(const RawBytes &data, size_t &offset, T &out) {
     static_assert(std::is_trivially_copyable_v<T>,
                   "T must be trivially copyable");
 
