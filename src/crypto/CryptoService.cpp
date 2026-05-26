@@ -1,4 +1,3 @@
-
 #include "CryptoService.h"
 
 #include <sodium.h>
