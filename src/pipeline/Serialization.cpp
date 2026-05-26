@@ -1,5 +1,7 @@
 #include "Serialization.h"
+#include "storage/Constants.h"
 #include "storage/VaultPreamble.h"
+
 #include <cstring>
 #include <vector>
 
@@ -161,8 +163,8 @@ RawBytes Serialization::serializeIndex(const BTreeIndex &index) {
     writeString(out, e.name);
     writeUUID(out, e.folderId);
 
-    write(out, e.offset);
-    write(out, e.size);
+    write(out, e.pageId);
+    write(out, e.slotId);
 
     uint8_t compressed = static_cast<uint8_t>(e.compressed);
     write(out, compressed);
@@ -184,8 +186,8 @@ std::vector<IndexEntry> Serialization::deserializeIndex(const RawBytes &data) {
     e.name = readString(data, offset);
     e.folderId = readUUID(data, offset);
 
-    e.offset = read<uint64_t>(data, offset);
-    e.size = read<uint32_t>(data, offset);
+    e.pageId = read<vault::storage::PageId>(data, offset);
+    e.slotId = read<vault::storage::SlotId>(data, offset);
 
     uint8_t compressed = read<uint8_t>(data, offset);
     e.compressed = static_cast<bool>(compressed);
@@ -205,13 +207,8 @@ RawBytes Serialization::serializePreamble(const VaultPreamble &p) {
   write(out, p.uuid);
   write(out, p.salt);
 
-  write(out, p.headerOffset);
-  write(out, p.headerSize);
-
-  write(out, p.indexOffset);
-  write(out, p.indexSize);
-
-  write(out, p.dataOffset);
+  write(out, p.pageSize);
+  write(out, p.headerPage);
 
   return out;
 }
@@ -227,13 +224,8 @@ VaultPreamble Serialization::deserializePreamble(const RawBytes &data) {
   readInto(data, offset, p.uuid);
   readInto(data, offset, p.salt);
 
-  p.headerOffset = read<uint64_t>(data, offset);
-  p.headerSize = read<uint64_t>(data, offset);
-
-  p.indexOffset = read<uint64_t>(data, offset);
-  p.indexSize = read<uint64_t>(data, offset);
-
-  p.dataOffset = read<uint64_t>(data, offset);
+  p.pageSize = read<uint32_t>(data, offset);
+  p.headerPage = read<uint64_t>(data, offset);
 
   return p;
 }
@@ -241,10 +233,15 @@ VaultPreamble Serialization::deserializePreamble(const RawBytes &data) {
 RawBytes Serialization::serializeHeader(const VaultHeader &h) {
   RawBytes out;
 
-  write(out, h.createdAt);
-  write(out, h.updatedAt);
+  write(out, h.indexPage);
+  write(out, h.dataPage);
+  write(out, h.freeListPage);
+
   write(out, h.entryCount);
   write(out, h.folderCount);
+
+  write(out, h.createdAt);
+  write(out, h.updatedAt);
 
   return out;
 }
@@ -253,10 +250,15 @@ VaultHeader Serialization::deserializeHeader(const RawBytes &data) {
   VaultHeader h;
   size_t offset = 0;
 
-  h.createdAt = read<uint64_t>(data, offset);
-  h.updatedAt = read<uint64_t>(data, offset);
+  h.indexPage = read<uint64_t>(data, offset);
+  h.dataPage = read<uint64_t>(data, offset);
+  h.freeListPage = read<uint64_t>(data, offset);
+
   h.entryCount = read<uint64_t>(data, offset);
   h.folderCount = read<uint64_t>(data, offset);
+
+  h.createdAt = read<uint64_t>(data, offset);
+  h.updatedAt = read<uint64_t>(data, offset);
 
   return h;
 }
@@ -290,6 +292,101 @@ EncryptedBlob Serialization::deserializeEncryptedBlob(const RawBytes &data) {
   std::memcpy(blob.ciphertext.data(), data.data() + offset, size);
 
   return blob;
+}
+
+RawBytes Serialization::serializePageHeader(const PageHeader &h) {
+  RawBytes out;
+
+  write(out, h.slotCount);
+  write(out, h.freeStart);
+  write(out, h.freeSpace);
+
+  return out;
+}
+
+PageHeader Serialization::deserializePageHeader(const RawBytes &data) {
+  PageHeader h;
+
+  size_t offset = 0;
+
+  h.slotCount = read<uint16_t>(data, offset);
+  h.freeStart = read<uint16_t>(data, offset);
+  h.freeSpace = read<uint16_t>(data, offset);
+
+  return h;
+}
+
+RawBytes Serialization::serializeSlot(const Slot &s) {
+  RawBytes out;
+
+  write(out, s.offset);
+  write(out, s.size);
+
+  uint8_t deleted = s.deleted ? 1 : 0;
+  write(out, deleted);
+
+  return out;
+}
+
+Slot Serialization::deserializeSlot(const RawBytes &data) {
+  Slot s;
+
+  size_t offset = 0;
+
+  s.offset = read<uint16_t>(data, offset);
+  s.size = read<uint16_t>(data, offset);
+
+  uint8_t deleted = read<uint8_t>(data, offset);
+  s.deleted = deleted != 0;
+
+  return s;
+}
+
+RawBytes Serialization::serializePageLayout(const PageLayout &layout) {
+  RawBytes out;
+
+  auto hdr = serializePageHeader(layout.header);
+
+  out.insert(out.end(), hdr.begin(), hdr.end());
+
+  uint16_t slotCount = static_cast<uint16_t>(layout.slots.size());
+  write(out, slotCount);
+
+  for (const auto &s : layout.slots) {
+    auto slotBytes = serializeSlot(s);
+
+    out.insert(out.end(), slotBytes.begin(), slotBytes.end());
+  }
+
+  return out;
+}
+
+PageLayout Serialization::deserializePageLayout(const RawBytes &data) {
+  PageLayout layout;
+
+  size_t offset = 0;
+
+  layout.header.slotCount = read<uint16_t>(data, offset);
+  layout.header.freeStart = read<uint16_t>(data, offset);
+  layout.header.freeSpace = read<uint16_t>(data, offset);
+
+  uint16_t slotCount = read<uint16_t>(data, offset);
+  layout.slots.reserve(slotCount);
+
+  for (uint16_t i = 0; i < slotCount; i++) {
+    Slot s;
+
+    s.offset = read<uint16_t>(data, offset);
+    s.size = read<uint16_t>(data, offset);
+
+    uint8_t deleted = read<uint8_t>(data, offset);
+
+    s.deleted = deleted != 0;
+
+    layout.slots.push_back(s);
+  }
+
+  return layout;
 }
 
 void Serialization::writeString(RawBytes &out, const std::string &str) {

@@ -36,10 +36,10 @@ KNOWN LIMITATIONS (TO FIX LATER)
 #include "models/VaultEntry.h"
 #include "storage/BTreeIndex.h"
 #include "storage/Constants.h"
+#include "storage/PageLayout.h"
 #include "storage/VaultHeader.h"
 #include "storage/VaultPreamble.h"
 
-#include <cstdint>
 #include <cstring>
 #include <string>
 #include <type_traits>
@@ -66,6 +66,15 @@ public:
 
   static RawBytes serializeEncryptedBlob(const EncryptedBlob &blob);
   static EncryptedBlob deserializeEncryptedBlob(const RawBytes &data);
+
+  static RawBytes serializePageHeader(const PageHeader &h);
+  static PageHeader deserializePageHeader(const RawBytes &data);
+
+  static RawBytes serializeSlot(const Slot &s);
+  static Slot deserializeSlot(const RawBytes &data);
+
+  static RawBytes serializePageLayout(const PageLayout &layout);
+  static PageLayout deserializePageLayout(const RawBytes &data);
 
   static void writeString(RawBytes &out, const std::string &str);
   static std::string readString(const RawBytes &data, size_t &offset);
