@@ -298,8 +298,8 @@ RawBytes Serialization::serializePageHeader(const PageHeader &h) {
   RawBytes out;
 
   write(out, h.slotCount);
-  write(out, h.freeStart);
-  write(out, h.freeSpace);
+  write(out, h.lower);
+  write(out, h.upper);
 
   return out;
 }
@@ -310,8 +310,8 @@ PageHeader Serialization::deserializePageHeader(const RawBytes &data) {
   size_t offset = 0;
 
   h.slotCount = read<uint16_t>(data, offset);
-  h.freeStart = read<uint16_t>(data, offset);
-  h.freeSpace = read<uint16_t>(data, offset);
+  h.lower = read<uint16_t>(data, offset);
+  h.upper = read<uint16_t>(data, offset);
 
   return h;
 }
@@ -321,9 +321,7 @@ RawBytes Serialization::serializeSlot(const Slot &s) {
 
   write(out, s.offset);
   write(out, s.size);
-
-  uint8_t deleted = s.deleted ? 1 : 0;
-  write(out, deleted);
+  write(out, static_cast<uint8_t>(s.state));
 
   return out;
 }
@@ -335,9 +333,7 @@ Slot Serialization::deserializeSlot(const RawBytes &data) {
 
   s.offset = read<uint16_t>(data, offset);
   s.size = read<uint16_t>(data, offset);
-
-  uint8_t deleted = read<uint8_t>(data, offset);
-  s.deleted = deleted != 0;
+  s.state = static_cast<SlotState>(read<uint8_t>(data, offset));
 
   return s;
 }
@@ -367,23 +363,20 @@ PageLayout Serialization::deserializePageLayout(const RawBytes &data) {
   size_t offset = 0;
 
   layout.header.slotCount = read<uint16_t>(data, offset);
-  layout.header.freeStart = read<uint16_t>(data, offset);
-  layout.header.freeSpace = read<uint16_t>(data, offset);
+  layout.header.lower = read<uint16_t>(data, offset);
+  layout.header.upper = read<uint16_t>(data, offset);
 
   uint16_t slotCount = read<uint16_t>(data, offset);
   layout.slots.reserve(slotCount);
 
   for (uint16_t i = 0; i < slotCount; i++) {
-    Slot s;
+    Slot slot;
 
-    s.offset = read<uint16_t>(data, offset);
-    s.size = read<uint16_t>(data, offset);
+    slot.offset = read<uint16_t>(data, offset);
+    slot.size = read<uint16_t>(data, offset);
+    slot.state = static_cast<SlotState>(read<uint8_t>(data, offset));
 
-    uint8_t deleted = read<uint8_t>(data, offset);
-
-    s.deleted = deleted != 0;
-
-    layout.slots.push_back(s);
+    layout.slots.push_back(slot);
   }
 
   return layout;
