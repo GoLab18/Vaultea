@@ -1,7 +1,11 @@
 #pragma once
 
+#include "Constants.h"
+
 #include <cstdint>
 #include <vector>
+
+using namespace vault::storage::page;
 
 enum SlotState : uint8_t { SLOT_USED = 0, SLOT_DELETED = 1 };
 
@@ -21,4 +25,7 @@ struct PageHeader {
 struct PageLayout {
   PageHeader header;
   std::vector<Slot> slots;
+
+  explicit PageLayout(uint16_t pageSize)
+      : header{.slotCount = 0, .lower = HEADER_SIZE, .upper = pageSize} {}
 };

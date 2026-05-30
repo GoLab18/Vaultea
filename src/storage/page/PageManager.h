@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Page.h"
 #include "Constants.h"
+#include "Page.h"
 
 #include <optional>
 
@@ -22,4 +22,8 @@ public:
 
 private:
   static uint16_t freeSpace(const Page &page);
+
+  static bool hasDeletedSlots(const Page &page);
+
+  static std::optional<SlotId> findReusableSlot(const Page &page);
 };

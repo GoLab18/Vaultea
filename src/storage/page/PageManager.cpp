@@ -2,6 +2,7 @@
 #include "Constants.h"
 #include "storage/Constants.h"
 
+#include <algorithm>
 #include <cstring>
 #include <stdexcept>
 
@@ -10,36 +11,69 @@ using namespace vault::storage::page;
 
 uint16_t PageManager::freeSpace(const Page &page) {
   const auto &h = page.layout.header;
-  return (h.upper - h.lower);
+  return h.upper - h.lower;
+}
+
+bool PageManager::hasDeletedSlots(const Page &page) {
+  for (const auto &slot : page.layout.slots) {
+    if (slot.state == SLOT_DELETED) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+std::optional<SlotId> PageManager::findReusableSlot(const Page &page) {
+  for (SlotId i = 0; i < page.layout.slots.size(); i++) {
+    if (page.layout.slots[i].state == SLOT_DELETED) {
+      return i;
+    }
+  }
+
+  return std::nullopt;
 }
 
 SlotId PageManager::insert(Page &page, const uint8_t *data, uint16_t size) {
   auto &h = page.layout.header;
 
-  uint16_t needed = size + SLOT_SIZE;
+  bool needsNewSlot = !findReusableSlot(page).has_value();
+
+  uint16_t needed = size + (needsNewSlot ? SLOT_SIZE : 0);
+
+  if (freeSpace(page) < needed && hasDeletedSlots(page)) {
+    compact(page);
+  }
 
   if (freeSpace(page) < needed) {
     throw std::runtime_error("page full");
   }
 
   h.upper -= size;
+
   uint16_t writeOffset = h.upper;
 
   std::memcpy(page.data.data() + writeOffset, data, size);
 
-  SlotId slotId = h.slotCount++;
+  SlotId slotId;
 
-  // TODO possible resize efficiency problems
-  if (page.layout.slots.size() <= slotId) {
+  auto reusable = findReusableSlot(page);
+
+  if (reusable.has_value()) {
+    slotId = *reusable;
+  } else {
+    slotId = h.slotCount++;
+
     page.layout.slots.resize(slotId + 1);
-  }
 
-  h.lower += SLOT_SIZE;
+    h.lower += SLOT_SIZE;
+  }
 
   page.layout.slots[slotId] =
       Slot{.offset = writeOffset, .size = size, .state = SLOT_USED};
 
   page.dirty = true;
+
   return slotId;
 }
 
@@ -60,6 +94,9 @@ std::vector<uint8_t> PageManager::read(Page &page, SlotId slotId) {
 
 std::optional<SlotId> PageManager::update(Page &page, SlotId slotId,
                                           const uint8_t *data, uint16_t size) {
+  if (slotId >= page.layout.slots.size())
+    throw std::runtime_error("invalid slot");
+
   Slot &s = page.layout.slots[slotId];
 
   if (s.state == SLOT_DELETED)
@@ -97,17 +134,26 @@ void PageManager::compact(Page &page) {
 
   std::vector<uint8_t> old = page.data;
 
-  uint16_t writeOffset = page.data.size();
+  std::vector<Slot *> activeSlots;
 
-  for (Slot &s : page.layout.slots) {
-    if (s.state == SLOT_DELETED)
-      continue;
+  for (auto &slot : page.layout.slots) {
+    if (slot.state == SLOT_USED) {
+      activeSlots.push_back(&slot);
+    }
+  }
 
-    writeOffset -= s.size;
+  std::sort(activeSlots.begin(), activeSlots.end(),
+            [](const Slot *a, const Slot *b) { return a->offset > b->offset; });
 
-    std::memcpy(page.data.data() + writeOffset, old.data() + s.offset, s.size);
+  uint16_t writeOffset = static_cast<uint16_t>(page.data.size());
 
-    s.offset = writeOffset;
+  for (Slot *slot : activeSlots) {
+    writeOffset -= slot->size;
+
+    std::memcpy(page.data.data() + writeOffset, old.data() + slot->offset,
+                slot->size);
+
+    slot->offset = writeOffset;
   }
 
   h.upper = writeOffset;
