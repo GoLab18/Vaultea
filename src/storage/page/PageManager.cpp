@@ -132,9 +132,10 @@ void PageManager::remove(Page &page, SlotId slotId) {
 void PageManager::compact(Page &page) {
   auto &h = page.layout.header;
 
-  std::vector<uint8_t> old = page.data;
+  uint8_t *data = page.data.data();
 
   std::vector<Slot *> activeSlots;
+  activeSlots.reserve(page.layout.slots.size());
 
   for (auto &slot : page.layout.slots) {
     if (slot.state == SLOT_USED) {
@@ -148,10 +149,11 @@ void PageManager::compact(Page &page) {
   uint16_t writeOffset = static_cast<uint16_t>(page.data.size());
 
   for (Slot *slot : activeSlots) {
-    writeOffset -= slot->size;
+    uint16_t size = slot->size;
 
-    std::memcpy(page.data.data() + writeOffset, old.data() + slot->offset,
-                slot->size);
+    writeOffset -= size;
+
+    std::memmove(data + writeOffset, data + slot->offset, size);
 
     slot->offset = writeOffset;
   }
