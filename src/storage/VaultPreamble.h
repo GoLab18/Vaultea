@@ -19,6 +19,4 @@ struct VaultPreamble {
   vault::crypto::Salt salt;
 
   uint32_t pageSize;
-
-  uint64_t headerPage;
 };
