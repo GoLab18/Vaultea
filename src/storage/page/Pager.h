@@ -1,32 +1,33 @@
 #pragma once
 
 #include "Page.h"
-#include "storage/Constants.h"
+#include "PageAllocator.h"
 #include "storage/StorageEngine.h"
 
-#include <cstdint>
 #include <list>
 #include <unordered_map>
-#include <vector>
+
+using namespace vault::storage::page;
 
 class Pager {
 public:
-  using PageId = vault::storage::PageId;
-
-  Pager(StorageEngine &storage, uint32_t pageSize, size_t maxPages);
+  Pager(StorageEngine &storage, uint32_t pageSize, uint64_t pageRegionOffset,
+        size_t maxPages, std::vector<PageId> freePages);
 
   Page &getPage(PageId id);
 
   void unpin(PageId id);
-  void markDirty(PageId id);
 
-  PageId allocatePage();
+  PageId allocatePage(PageType type);
+
   void freePage(PageId id);
 
   void flush();
 
 private:
   StorageEngine &storage;
+  PageAllocator allocator;
+
   uint32_t pageSize;
   size_t maxPages;
 
@@ -35,17 +36,12 @@ private:
   std::list<PageId> lru;
   std::unordered_map<PageId, std::list<PageId>::iterator> lruMap;
 
-  std::vector<PageId> freePages;
-
-  PageId nextPageId = 0;
-
-private:
-  inline uint64_t pageOffset(PageId id) const {
-    return static_cast<uint64_t>(id) * pageSize;
-  }
-
   void touch(PageId id);
   void evictOne();
+
   void loadPage(PageId id);
+
   void writePageToDisk(Page &page);
+
+  Page createPage(PageId id, PageType type);
 };

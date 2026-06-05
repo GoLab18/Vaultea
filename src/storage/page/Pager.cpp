@@ -1,11 +1,22 @@
 #include "Pager.h"
+#include "PageLayout.h"
+#include "pipeline/Serialization.h"
 
+#include <memory>
 #include <stdexcept>
+#include <vector>
 
-Pager::Pager(StorageEngine &storage, uint32_t pageSize, size_t maxPages)
-    : storage(storage), pageSize(pageSize), maxPages(maxPages) {
-  nextPageId = storage.fileSize() / pageSize;
-}
+Pager::Pager(StorageEngine &storage, uint32_t pageSize,
+             uint64_t pageRegionOffset, size_t maxPages,
+             std::vector<PageId> freePages)
+    : storage(storage),
+      allocator(pageSize, pageRegionOffset,
+                std::unordered_set<PageId>(freePages.begin(), freePages.end()),
+                (storage.fileSize() <= pageRegionOffset)
+                    ? 0
+                    : (storage.fileSize() - pageRegionOffset + pageSize - 1) /
+                          pageSize),
+      pageSize(pageSize), maxPages(maxPages) {}
 
 Page &Pager::getPage(PageId id) {
   auto it = cache.find(id);
@@ -35,13 +46,43 @@ void Pager::unpin(PageId id) {
   }
 }
 
-void Pager::markDirty(PageId id) {
-  auto it = cache.find(id);
-  if (it == cache.end()) {
-    throw std::runtime_error("markDirty: page not cached");
+PageId Pager::allocatePage(PageType type) {
+  PageId id = allocator.allocate();
+
+  if (cache.size() >= maxPages) {
+    evictOne();
   }
 
-  it->second.dirty = true;
+  cache[id] = createPage(id, type);
+
+  touch(id);
+
+  return id;
+}
+
+void Pager::freePage(PageId id) {
+  Page &page = getPage(id);
+
+  if (page.pinCount > 1) {
+    throw std::runtime_error("page pinned");
+  }
+
+  PageHeader header;
+
+  header.pageId = id;
+  header.type = PageType::Free;
+  header.nextPage = INVALID_PAGE;
+
+  page.layout = std::make_unique<FreeLayout>(header);
+
+  // TODO might be redundant considering encryption
+  std::fill(page.data.begin(), page.data.end(), 0);
+
+  page.dirty = true;
+
+  allocator.free(id);
+
+  unpin(id);
 }
 
 void Pager::touch(PageId id) {
@@ -84,64 +125,85 @@ void Pager::evictOne() {
     return;
   }
 
-  throw std::runtime_error("evictOne: no evictable pages");
+  throw std::runtime_error("no evictable pages");
 }
 
 void Pager::loadPage(PageId id) {
   Page page;
   page.id = id;
-  page.data.resize(pageSize, 0);
-  page.dirty = false;
-  page.pinCount = 0;
+  page.data.resize(pageSize);
 
-  uint64_t offset = pageOffset(id);
-  uint64_t fileSize = storage.fileSize();
+  uint64_t offset = allocator.pageOffset(id);
 
-  if (offset < fileSize) {
-    auto raw = storage.read(offset, pageSize);
-    page.data = std::move(raw);
+  if (offset < storage.fileSize()) {
+    page.data = storage.read(offset, pageSize);
+  }
+
+  PageHeader header = Serialization::deserializePageHeader(page.data);
+
+  switch (header.type) {
+
+  case PageType::Data:
+  case PageType::Index: {
+    SlottedLayout layout =
+        Serialization::deserializeSlottedLayout(header, pageSize, page.data);
+
+    page.layout = std::make_unique<SlottedLayout>(std::move(layout));
+    break;
+  }
+
+  case PageType::Freelist: {
+    FreelistLayout layout =
+        Serialization::deserializeFreelistLayout(header, page.data);
+
+    page.layout = std::make_unique<FreelistLayout>(std::move(layout));
+    break;
+  }
+
+  case PageType::Free: {
+    FreeLayout layout = Serialization::deserializeFreeLayout(header);
+
+    page.layout = std::make_unique<FreeLayout>(std::move(layout));
+    break;
+  }
   }
 
   cache[id] = std::move(page);
 }
 
 void Pager::writePageToDisk(Page &page) {
-  storage.write(pageOffset(page.id), page.data.data(), pageSize);
+  RawBytes headerBytes =
+      Serialization::serializePageHeader(page.layout->header);
+
+  std::copy(headerBytes.begin(), headerBytes.end(), page.data.begin());
+
+  RawBytes layoutBytes;
+
+  switch (page.layout->header.type) {
+
+  case PageType::Data:
+  case PageType::Index:
+    layoutBytes =
+        Serialization::serializeSlottedLayout(page.layout->as<SlottedLayout>());
+    break;
+
+  case PageType::Freelist:
+    layoutBytes = Serialization::serializeFreelistLayout(
+        page.layout->as<FreelistLayout>());
+    break;
+
+  case PageType::Free:
+    layoutBytes =
+        Serialization::serializeFreeLayout(page.layout->as<FreeLayout>());
+    break;
+  }
+
+  std::copy(layoutBytes.begin(), layoutBytes.end(),
+            page.data.begin() + HEADER_SIZE);
+
+  storage.write(allocator.pageOffset(page.id), page.data.data(), pageSize);
+
   page.dirty = false;
-}
-
-Pager::PageId Pager::allocatePage() {
-  if (!freePages.empty()) {
-    PageId id = freePages.back();
-    freePages.pop_back();
-    return id;
-  }
-
-  return nextPageId++;
-}
-
-void Pager::freePage(PageId id) {
-  auto it = cache.find(id);
-
-  if (it != cache.end()) {
-    if (it->second.pinCount > 0) {
-      throw std::runtime_error("freePage: page is pinned");
-    }
-
-    if (it->second.dirty) {
-      writePageToDisk(it->second);
-    }
-
-    cache.erase(it);
-  }
-
-  auto lm = lruMap.find(id);
-  if (lm != lruMap.end()) {
-    lru.erase(lm->second);
-    lruMap.erase(lm);
-  }
-
-  freePages.push_back(id);
 }
 
 void Pager::flush() {
