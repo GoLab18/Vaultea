@@ -3,11 +3,48 @@
 #include "Constants.h"
 
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 using namespace vault::storage::page;
 
-enum SlotState : uint8_t { SLOT_USED = 0, SLOT_DELETED = 1 };
+enum class PageType : uint8_t { Free, Data, Freelist, Index };
+
+struct PageHeader {
+  PageId pageId;
+  PageType type;
+  PageId nextPage;
+
+  PageHeader()
+      : pageId(INVALID_PAGE), type(PageType::Free), nextPage(INVALID_PAGE) {}
+};
+
+class PageLayoutBase {
+public:
+  PageHeader header;
+
+  explicit PageLayoutBase(PageHeader h) : header(h) {}
+
+  virtual ~PageLayoutBase() = default;
+
+  template <typename T> T &as() {
+    auto *ptr = dynamic_cast<T *>(this);
+    if (!ptr)
+      throw std::runtime_error("invalid layout cast");
+    return *ptr;
+  }
+
+  template <typename T> const T &as() const {
+    auto *ptr = dynamic_cast<const T *>(this);
+    if (!ptr)
+      throw std::runtime_error("invalid layout cast");
+    return *ptr;
+  }
+};
+
+enum class LayoutType : uint8_t { Slotted, Freelist, Free };
+
+enum SlotState : uint8_t { SLOT_USED, SLOT_DELETED };
 
 struct Slot {
   uint16_t offset;
@@ -15,17 +52,37 @@ struct Slot {
   SlotState state;
 };
 
-struct PageHeader {
-  uint16_t slotCount;
+struct SlottedLayout : public PageLayoutBase {
+  uint16_t slotCount = 0;
+  uint16_t lower = HEADER_SIZE;
+  uint16_t upper = 0;
 
-  uint16_t lower;
-  uint16_t upper;
-};
-
-struct PageLayout {
-  PageHeader header;
   std::vector<Slot> slots;
 
-  explicit PageLayout(uint16_t pageSize)
-      : header{.slotCount = 0, .lower = HEADER_SIZE, .upper = pageSize} {}
+  explicit SlottedLayout(PageHeader h, uint32_t pageSize)
+      : PageLayoutBase(h), upper(pageSize) {}
 };
+
+struct FreelistLayout : public PageLayoutBase {
+  std::vector<PageId> freePages;
+
+  explicit FreelistLayout(PageHeader h) : PageLayoutBase(h) {}
+};
+
+struct FreeLayout : public PageLayoutBase {
+  explicit FreeLayout(PageHeader h) : PageLayoutBase(h) {}
+};
+
+constexpr LayoutType toLayoutType(PageType type) {
+  switch (type) {
+  case PageType::Data:
+  case PageType::Index:
+    return LayoutType::Slotted;
+
+  case PageType::Freelist:
+    return LayoutType::Freelist;
+
+  case PageType::Free:
+    return LayoutType::Free;
+  }
+}

@@ -1,5 +1,7 @@
 #include "PageAllocator.h"
 
+#include <stdexcept>
+
 PageAllocator::PageAllocator(uint64_t pageSize, uint64_t pageRegionOffset,
                              std::unordered_set<PageId> freePages,
                              PageId nextPageId)
