@@ -4,9 +4,12 @@
 
 #include <cstdint>
 
+using namespace vault::storage::page;
+
 struct VaultHeader {
-  vault::storage::page::PageId indexRootPage;
-  vault::storage::page::PageId freelistRootPage;
+  PageId indexRootPage;
+  PageId freelistRootPage;
+  PageId dataRootPage;
 
   uint64_t entryCount;
   uint64_t folderCount;
