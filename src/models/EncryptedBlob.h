@@ -1,6 +1,7 @@
 #pragma once
 
 #include "crypto/Constants.h"
+#include "storage/Constants.h"
 
 #include <array>
 #include <cstdint>
@@ -8,5 +9,5 @@
 
 struct EncryptedBlob {
   vault::crypto::Nonce nonce;
-  std::vector<uint8_t> ciphertext;
+  RawBytes ciphertext;
 };

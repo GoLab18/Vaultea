@@ -22,12 +22,12 @@ Key CryptoService::deriveMasterKey(const std::string &password,
   return key;
 }
 
-std::vector<uint8_t> CryptoService::encrypt(const std::vector<uint8_t> &data,
-                                            const Key &key, Nonce &nonce) {
+RawBytes CryptoService::encrypt(const RawBytes &data, const Key &key,
+                                Nonce &nonce) {
 
   randombytes_buf(nonce.data(), nonce.size());
 
-  std::vector<uint8_t> cipher(data.size() + MAC_SIZE);
+  RawBytes cipher(data.size() + MAC_SIZE);
 
   unsigned long long cipherLen = 0;
 
@@ -44,15 +44,14 @@ std::vector<uint8_t> CryptoService::encrypt(const std::vector<uint8_t> &data,
   return cipher;
 }
 
-std::vector<uint8_t> CryptoService::decrypt(const std::vector<uint8_t> &cipher,
-                                            const Key &key,
-                                            const Nonce &nonce) {
+RawBytes CryptoService::decrypt(const RawBytes &cipher, const Key &key,
+                                const Nonce &nonce) {
 
   if (cipher.size() < MAC_SIZE) {
     throw std::runtime_error("Ciphertext too small");
   }
 
-  std::vector<uint8_t> plain(cipher.size());
+  RawBytes plain(cipher.size());
 
   unsigned long long plainLen = 0;
 

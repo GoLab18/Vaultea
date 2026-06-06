@@ -1,10 +1,14 @@
 #pragma once
 
+#include "storage/Constants.h"
+
 #include <cstdint>
 #include <vector>
 
+using namespace vault::storage;
+
 class Compression {
 public:
-  static std::vector<uint8_t> compress(const std::vector<uint8_t> &input);
-  static std::vector<uint8_t> decompress(const std::vector<uint8_t> &input);
+  static RawBytes compress(const RawBytes &input);
+  static RawBytes decompress(const RawBytes &input);
 };

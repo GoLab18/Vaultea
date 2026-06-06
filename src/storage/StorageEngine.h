@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Constants.h"
+
 #include <cstdint>
 #include <fstream>
 #include <string>
