@@ -32,3 +32,9 @@ struct IndexEntry {
 
   IndexPayload payload;
 };
+
+struct LoadedIndexEntry {
+  IndexEntry entry;
+
+  RecordRef indexRef;
+};
