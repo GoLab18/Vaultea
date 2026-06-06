@@ -2,39 +2,140 @@
 
 void BTreeIndex::insert(const IndexEntry &entry) {
   byId[entry.id] = entry;
-  byFolder.insert({entry.folderId, entry.id});
+
+  switch (entry.type) {
+
+  case IndexObjectType::Entry: {
+    const auto &meta = std::get<ItemIndexMeta>(entry.payload);
+
+    byFolder.insert({meta.folderId, entry.id});
+    byEntryName.insert({meta.name, entry.id});
+
+    break;
+  }
+
+  case IndexObjectType::Folder: {
+    const auto &meta = std::get<FolderIndexMeta>(entry.payload);
+
+    byFolderName.insert({meta.name, entry.id});
+
+    break;
+  }
+  }
 }
 
 void BTreeIndex::remove(const UUID &id) {
   auto it = byId.find(id);
+
   if (it == byId.end())
     return;
 
-  const UUID &folderId = it->second.folderId;
+  const IndexEntry &entry = it->second;
 
-  auto range = byFolder.equal_range(folderId);
+  switch (entry.type) {
 
-  for (auto i = range.first; i != range.second; ++i) {
-    if (i->second == id) {
-      byFolder.erase(i);
-      break;
+  case IndexObjectType::Entry: {
+    const auto &meta = std::get<ItemIndexMeta>(entry.payload);
+
+    auto range = byFolder.equal_range(meta.folderId);
+
+    for (auto i = range.first; i != range.second; ++i) {
+      if (i->second == id) {
+        byFolder.erase(i);
+        break;
+      }
     }
+
+    auto nameRange = byEntryName.equal_range(meta.name);
+
+    for (auto i = nameRange.first; i != nameRange.second; ++i) {
+      if (i->second == id) {
+        byEntryName.erase(i);
+        break;
+      }
+    }
+
+    break;
+  }
+
+  case IndexObjectType::Folder: {
+    const auto &meta = std::get<FolderIndexMeta>(entry.payload);
+
+    auto range = byFolderName.equal_range(meta.name);
+
+    for (auto i = range.first; i != range.second; ++i) {
+      if (i->second == id) {
+        byFolderName.erase(i);
+        break;
+      }
+    }
+
+    break;
+  }
   }
 
   byId.erase(it);
 }
 
-IndexEntry *BTreeIndex::find(const UUID &id) {
+const IndexEntry *BTreeIndex::find(const UUID &id) {
   auto it = byId.find(id);
   if (it == byId.end())
     return nullptr;
   return &it->second;
 }
 
+const IndexEntry *BTreeIndex::findEntry(const UUID &id) {
+  auto *e = find(id);
+
+  if (!e)
+    return nullptr;
+
+  if (e->type != IndexObjectType::Entry)
+    return nullptr;
+
+  return e;
+}
+
+const IndexEntry *BTreeIndex::findFolder(const UUID &id) {
+  auto *e = find(id);
+
+  if (!e)
+    return nullptr;
+
+  if (e->type != IndexObjectType::Folder)
+    return nullptr;
+
+  return e;
+}
+
 std::vector<IndexEntry> BTreeIndex::findByFolder(const UUID &folderId) {
   std::vector<IndexEntry> out;
 
   auto range = byFolder.equal_range(folderId);
+
+  for (auto it = range.first; it != range.second; ++it) {
+    out.push_back(byId[it->second]);
+  }
+
+  return out;
+}
+
+std::vector<IndexEntry> BTreeIndex::findEntriesByName(const std::string &name) {
+  std::vector<IndexEntry> out;
+
+  auto range = byEntryName.equal_range(name);
+
+  for (auto it = range.first; it != range.second; ++it) {
+    out.push_back(byId[it->second]);
+  }
+
+  return out;
+}
+
+std::vector<IndexEntry> BTreeIndex::findFoldersByName(const std::string &name) {
+  std::vector<IndexEntry> out;
+
+  auto range = byFolderName.equal_range(name);
 
   for (auto it = range.first; it != range.second; ++it) {
     out.push_back(byId[it->second]);
@@ -52,14 +153,4 @@ std::vector<IndexEntry> BTreeIndex::all() const {
   }
 
   return out;
-}
-
-void BTreeIndex::rebuild(const std::vector<IndexEntry> &entries) {
-  byId.clear();
-  byFolder.clear();
-
-  for (const auto &e : entries) {
-    byId[e.id] = e;
-    byFolder.insert({e.folderId, e.id});
-  }
 }
