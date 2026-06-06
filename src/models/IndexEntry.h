@@ -35,6 +35,5 @@ struct IndexEntry {
 
 struct LoadedIndexEntry {
   IndexEntry entry;
-
   RecordRef indexRef;
 };
