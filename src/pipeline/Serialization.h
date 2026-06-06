@@ -2,7 +2,7 @@
 
 /*
 ===============================================================================
-SERIALIZATION FORMAT (MVP NOTES)
+SERIALIZATION FORMAT (MVP)
 ===============================================================================
 
 Current design:
@@ -33,19 +33,19 @@ KNOWN LIMITATIONS (TO FIX LATER)
 
 #include "models/EncryptedBlob.h"
 #include "models/Folder.h"
+#include "models/IndexEntry.h"
 #include "models/VaultEntry.h"
-#include "storage/BTreeIndex.h"
 #include "storage/Constants.h"
-#include "storage/PageLayout.h"
 #include "storage/VaultHeader.h"
 #include "storage/VaultPreamble.h"
+#include "storage/page/PageLayout.h"
 
 #include <cstring>
 #include <string>
 #include <type_traits>
-#include <vector>
 
 using namespace vault::storage;
+using namespace vault::storage::page;
 
 class Serialization {
 public:
@@ -55,8 +55,8 @@ public:
   static RawBytes serializeFolder(const Folder &f);
   static Folder deserializeFolder(const RawBytes &data);
 
-  static RawBytes serializeIndex(const BTreeIndex &index);
-  static std::vector<IndexEntry> deserializeIndex(const RawBytes &data);
+  static RawBytes serializeIndexEntry(const IndexEntry &e);
+  static IndexEntry deserializeIndexEntry(const RawBytes &data);
 
   static RawBytes serializePreamble(const VaultPreamble &p);
   static VaultPreamble deserializePreamble(const RawBytes &data);
@@ -73,8 +73,17 @@ public:
   static RawBytes serializeSlot(const Slot &s);
   static Slot deserializeSlot(const RawBytes &data);
 
-  static RawBytes serializePageLayout(const PageLayout &layout);
-  static PageLayout deserializePageLayout(const RawBytes &data);
+  static RawBytes serializeSlottedLayout(const SlottedLayout &layout);
+  static SlottedLayout deserializeSlottedLayout(const PageHeader &header,
+                                                uint32_t pageSize,
+                                                const RawBytes &data);
+
+  static RawBytes serializeFreelistLayout(const FreelistLayout &layout);
+  static FreelistLayout deserializeFreelistLayout(const PageHeader &header,
+                                                  const RawBytes &data);
+
+  static RawBytes serializeFreeLayout(const FreeLayout &);
+  static FreeLayout deserializeFreeLayout(const PageHeader &header);
 
   static void writeString(RawBytes &out, const std::string &str);
   static std::string readString(const RawBytes &data, size_t &offset);

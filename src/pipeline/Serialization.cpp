@@ -1,9 +1,11 @@
 #include "Serialization.h"
 #include "storage/Constants.h"
 #include "storage/VaultPreamble.h"
+#include "storage/page/Constants.h"
+#include "storage/page/PageLayout.h"
 
+#include <cstdint>
 #include <cstring>
-#include <vector>
 
 RawBytes Serialization::serializeEntry(const VaultEntry &e) {
   RawBytes out;
@@ -150,52 +152,74 @@ Folder Serialization::deserializeFolder(const RawBytes &data) {
   return f;
 }
 
-RawBytes Serialization::serializeIndex(const BTreeIndex &index) {
+RawBytes Serialization::serializeIndexEntry(const IndexEntry &e) {
   RawBytes out;
 
-  auto allEntries = index.all();
+  writeUUID(out, e.id);
+  write(out, e.type);
 
-  uint32_t count = static_cast<uint32_t>(allEntries.size());
-  write(out, count);
+  switch (e.type) {
 
-  for (const auto &e : allEntries) {
-    writeUUID(out, e.id);
-    writeString(out, e.name);
-    writeUUID(out, e.folderId);
+  case IndexObjectType::Entry: {
+    const auto &meta = std::get<ItemIndexMeta>(e.payload);
+    writeUUID(out, meta.folderId);
+    writeString(out, meta.name);
 
-    write(out, e.pageId);
-    write(out, e.slotId);
-
-    uint8_t compressed = static_cast<uint8_t>(e.compressed);
-    write(out, compressed);
+    break;
   }
+  case IndexObjectType::Folder: {
+    const auto &meta = std::get<FolderIndexMeta>(e.payload);
+    writeString(out, meta.name);
+
+    break;
+  }
+  }
+
+  write(out, static_cast<uint8_t>(e.compressed));
+
+  write(out, e.indexRef.pageId);
+  write(out, e.indexRef.slotId);
 
   return out;
 }
 
-std::vector<IndexEntry> Serialization::deserializeIndex(const RawBytes &data) {
-  std::vector<IndexEntry> out;
+IndexEntry Serialization::deserializeIndexEntry(const RawBytes &data) {
+  IndexEntry e;
   size_t offset = 0;
 
-  uint32_t count = read<uint32_t>(data, offset);
+  e.id = readUUID(data, offset);
+  e.type = static_cast<IndexObjectType>(read<uint8_t>(data, offset));
 
-  for (uint32_t i = 0; i < count; i++) {
-    IndexEntry e;
+  switch (e.type) {
 
-    e.id = readUUID(data, offset);
-    e.name = readString(data, offset);
-    e.folderId = readUUID(data, offset);
+  case IndexObjectType::Entry: {
+    ItemIndexMeta meta;
+    meta.folderId = readUUID(data, offset);
+    meta.name = readString(data, offset);
 
-    e.pageId = read<vault::storage::PageId>(data, offset);
-    e.slotId = read<vault::storage::SlotId>(data, offset);
+    e.payload = meta;
 
-    uint8_t compressed = read<uint8_t>(data, offset);
-    e.compressed = static_cast<bool>(compressed);
-
-    out.push_back(e);
+    break;
   }
 
-  return out;
+  case IndexObjectType::Folder: {
+    FolderIndexMeta meta;
+    meta.name = readString(data, offset);
+
+    e.payload = meta;
+
+    break;
+  }
+
+  default:
+    break;
+  }
+
+  e.dataRef = {read<PageId>(data, offset), read<SlotId>(data, offset)};
+
+  e.compressed = static_cast<bool>(read<uint8_t>(data, offset));
+
+  return e;
 }
 
 RawBytes Serialization::serializePreamble(const VaultPreamble &p) {
@@ -208,7 +232,6 @@ RawBytes Serialization::serializePreamble(const VaultPreamble &p) {
   write(out, p.salt);
 
   write(out, p.pageSize);
-  write(out, p.headerPage);
 
   return out;
 }
@@ -225,7 +248,6 @@ VaultPreamble Serialization::deserializePreamble(const RawBytes &data) {
   readInto(data, offset, p.salt);
 
   p.pageSize = read<uint32_t>(data, offset);
-  p.headerPage = read<uint64_t>(data, offset);
 
   return p;
 }
@@ -233,9 +255,8 @@ VaultPreamble Serialization::deserializePreamble(const RawBytes &data) {
 RawBytes Serialization::serializeHeader(const VaultHeader &h) {
   RawBytes out;
 
-  write(out, h.indexPage);
-  write(out, h.dataPage);
-  write(out, h.freeListPage);
+  write(out, h.indexRootPage);
+  write(out, h.freelistRootPage);
 
   write(out, h.entryCount);
   write(out, h.folderCount);
@@ -250,9 +271,8 @@ VaultHeader Serialization::deserializeHeader(const RawBytes &data) {
   VaultHeader h;
   size_t offset = 0;
 
-  h.indexPage = read<uint64_t>(data, offset);
-  h.dataPage = read<uint64_t>(data, offset);
-  h.freeListPage = read<uint64_t>(data, offset);
+  h.indexRootPage = read<uint64_t>(data, offset);
+  h.freelistRootPage = read<uint64_t>(data, offset);
 
   h.entryCount = read<uint64_t>(data, offset);
   h.folderCount = read<uint64_t>(data, offset);
@@ -297,9 +317,9 @@ EncryptedBlob Serialization::deserializeEncryptedBlob(const RawBytes &data) {
 RawBytes Serialization::serializePageHeader(const PageHeader &h) {
   RawBytes out;
 
-  write(out, h.slotCount);
-  write(out, h.lower);
-  write(out, h.upper);
+  write(out, h.pageId);
+  write(out, static_cast<uint8_t>(h.type));
+  write(out, h.nextPage);
 
   return out;
 }
@@ -309,9 +329,9 @@ PageHeader Serialization::deserializePageHeader(const RawBytes &data) {
 
   size_t offset = 0;
 
-  h.slotCount = read<uint16_t>(data, offset);
-  h.lower = read<uint16_t>(data, offset);
-  h.upper = read<uint16_t>(data, offset);
+  h.pageId = read<PageId>(data, offset);
+  h.type = static_cast<PageType>(read<uint8_t>(data, offset));
+  h.nextPage = read<PageId>(data, offset);
 
   return h;
 }
@@ -338,48 +358,81 @@ Slot Serialization::deserializeSlot(const RawBytes &data) {
   return s;
 }
 
-RawBytes Serialization::serializePageLayout(const PageLayout &layout) {
+RawBytes Serialization::serializeSlottedLayout(const SlottedLayout &layout) {
   RawBytes out;
 
-  auto hdr = serializePageHeader(layout.header);
-
-  out.insert(out.end(), hdr.begin(), hdr.end());
-
-  uint16_t slotCount = static_cast<uint16_t>(layout.slots.size());
-  write(out, slotCount);
+  write(out, layout.slotCount);
+  write(out, layout.lower);
+  write(out, layout.upper);
 
   for (const auto &s : layout.slots) {
-    auto slotBytes = serializeSlot(s);
-
-    out.insert(out.end(), slotBytes.begin(), slotBytes.end());
+    write(out, s.offset);
+    write(out, s.size);
+    write(out, static_cast<uint8_t>(s.state));
   }
 
   return out;
 }
 
-PageLayout Serialization::deserializePageLayout(const RawBytes &data) {
-  PageLayout layout;
+SlottedLayout Serialization::deserializeSlottedLayout(const PageHeader &header,
+                                                      uint32_t pageSize,
+                                                      const RawBytes &data) {
 
-  size_t offset = 0;
+  size_t offset = HEADER_SIZE;
 
-  layout.header.slotCount = read<uint16_t>(data, offset);
-  layout.header.lower = read<uint16_t>(data, offset);
-  layout.header.upper = read<uint16_t>(data, offset);
+  SlottedLayout layout(header, pageSize);
 
-  uint16_t slotCount = read<uint16_t>(data, offset);
-  layout.slots.reserve(slotCount);
+  layout.slotCount = read<uint16_t>(data, offset);
+  layout.lower = read<uint16_t>(data, offset);
+  layout.upper = read<uint16_t>(data, offset);
+  layout.slots.reserve(layout.slotCount);
 
-  for (uint16_t i = 0; i < slotCount; i++) {
-    Slot slot;
-
-    slot.offset = read<uint16_t>(data, offset);
-    slot.size = read<uint16_t>(data, offset);
-    slot.state = static_cast<SlotState>(read<uint8_t>(data, offset));
-
-    layout.slots.push_back(slot);
+  for (uint16_t i = 0; i < layout.slotCount; i++) {
+    Slot s;
+    s.offset = read<uint16_t>(data, offset);
+    s.size = read<uint16_t>(data, offset);
+    s.state = static_cast<SlotState>(read<uint8_t>(data, offset));
+    layout.slots.push_back(s);
   }
 
   return layout;
+}
+
+RawBytes Serialization::serializeFreelistLayout(const FreelistLayout &layout) {
+  RawBytes out;
+
+  uint16_t count = static_cast<uint16_t>(layout.freePages.size());
+  write(out, count);
+
+  for (PageId id : layout.freePages) {
+    write(out, id);
+  }
+
+  return out;
+}
+
+FreelistLayout
+Serialization::deserializeFreelistLayout(const PageHeader &header,
+                                         const RawBytes &data) {
+
+  size_t offset = HEADER_SIZE;
+
+  FreelistLayout layout(header);
+
+  uint16_t count = read<uint16_t>(data, offset);
+  layout.freePages.reserve(count);
+
+  for (uint16_t i = 0; i < count; i++) {
+    layout.freePages.push_back(read<PageId>(data, offset));
+  }
+
+  return layout;
+}
+
+RawBytes Serialization::serializeFreeLayout(const FreeLayout &) { return {}; }
+
+FreeLayout Serialization::deserializeFreeLayout(const PageHeader &header) {
+  return FreeLayout(header);
 }
 
 void Serialization::writeString(RawBytes &out, const std::string &str) {
