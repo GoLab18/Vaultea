@@ -7,13 +7,9 @@
 #include <absl/container/btree_map.h>
 #include <vector>
 
-// TODO we can create an interface for example "Index" that will have virtual
-// methods regarding index operations and the BTreeIndex is gonna be the leading
-// implementation
-
 class BTreeIndex {
 public:
-  void insert(const IndexEntry &entry);
+    void insert(const LoadedIndexEntry &loadedEntry);
 
   void remove(const UUID &id);
 
@@ -29,8 +25,10 @@ public:
 
   std::vector<IndexEntry> all() const;
 
+  void rebuild(const std::vector<LoadedIndexEntry> &entries);
+
 private:
-  absl::btree_map<UUID, IndexEntry> byId;
+  absl::btree_map<UUID, LoadedIndexEntry> byId;
   absl::btree_multimap<UUID, UUID> byFolder;
 
   absl::btree_multimap<std::string, UUID> byEntryName;
