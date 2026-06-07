@@ -18,6 +18,8 @@ public:
   explicit SlottedManager(Pager &pager, PageId rootPage, PageType pageType);
 
 protected:
+  Pager &pager;
+
   RecordRef insertRecord(const RawBytes &bytes);
 
   RawBytes readRecord(const RecordRef &ref);
@@ -28,8 +30,6 @@ protected:
   void deleteRecord(const RecordRef &ref);
 
 private:
-  Pager &pager;
-
   PageType pageType;
 
   PageId rootPage;

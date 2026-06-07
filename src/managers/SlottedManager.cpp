@@ -44,6 +44,8 @@ RecordRef SlottedManager::insertRecord(const RawBytes &bytes) {
 
   updatePageSpace(pageId, after);
 
+  // TODO would be good to flush the changes here
+
   pager.unpin(pageId);
 
   return {pageId, slot};
@@ -72,6 +74,8 @@ std::optional<RecordRef> SlottedManager::updateRecord(const RecordRef &ref,
 
   updatePageSpace(ref.pageId, after);
 
+  // TODO would be good to flush the changes here
+
   pager.unpin(ref.pageId);
 
   if (!moved)
@@ -90,6 +94,8 @@ void SlottedManager::deleteRecord(const RecordRef &ref) {
   FreeSpace after = layout.upper - layout.lower;
 
   updatePageSpace(ref.pageId, after);
+
+  // TODO would be good to flush the changes here
 
   pager.unpin(ref.pageId);
 }
