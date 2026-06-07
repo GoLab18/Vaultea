@@ -26,7 +26,6 @@ struct IndexEntry {
   IndexObjectType type;
 
   RecordRef dataRef;
-  RecordRef indexRef;
 
   bool compressed;
 
