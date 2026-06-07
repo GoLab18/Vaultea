@@ -71,8 +71,7 @@ VaultEntry Serialization::deserializeEntry(const RawBytes &data) {
   e.createdAt = read<uint64_t>(data, offset);
   e.updatedAt = read<uint64_t>(data, offset);
 
-  uint32_t type = read<uint32_t>(data, offset);
-  e.type = static_cast<EntryType>(type);
+  e.type = static_cast<EntryType>(read<uint32_t>(data, offset));
 
   switch (e.type) {
   case EntryType::Login: {
@@ -158,6 +157,11 @@ RawBytes Serialization::serializeIndexEntry(const IndexEntry &e) {
   writeUUID(out, e.id);
   write(out, e.type);
 
+  write(out, e.dataRef.pageId);
+  write(out, e.dataRef.slotId);
+
+  write(out, static_cast<uint8_t>(e.compressed));
+
   switch (e.type) {
 
   case IndexObjectType::Entry: {
@@ -175,11 +179,6 @@ RawBytes Serialization::serializeIndexEntry(const IndexEntry &e) {
   }
   }
 
-  write(out, static_cast<uint8_t>(e.compressed));
-
-  write(out, e.indexRef.pageId);
-  write(out, e.indexRef.slotId);
-
   return out;
 }
 
@@ -189,6 +188,10 @@ IndexEntry Serialization::deserializeIndexEntry(const RawBytes &data) {
 
   e.id = readUUID(data, offset);
   e.type = static_cast<IndexObjectType>(read<uint8_t>(data, offset));
+
+  e.dataRef = {read<PageId>(data, offset), read<SlotId>(data, offset)};
+
+  e.compressed = static_cast<bool>(read<uint8_t>(data, offset));
 
   switch (e.type) {
 
@@ -214,10 +217,6 @@ IndexEntry Serialization::deserializeIndexEntry(const RawBytes &data) {
   default:
     break;
   }
-
-  e.dataRef = {read<PageId>(data, offset), read<SlotId>(data, offset)};
-
-  e.compressed = static_cast<bool>(read<uint8_t>(data, offset));
 
   return e;
 }
@@ -256,6 +255,7 @@ RawBytes Serialization::serializeHeader(const VaultHeader &h) {
   RawBytes out;
 
   write(out, h.indexRootPage);
+  write(out, h.dataRootPage);
   write(out, h.freelistRootPage);
 
   write(out, h.entryCount);
@@ -267,11 +267,14 @@ RawBytes Serialization::serializeHeader(const VaultHeader &h) {
   return out;
 }
 
+// TODO adjust template params for "read" etc. to use aliases like EpochTime
+// etc. (no static casting also)
 VaultHeader Serialization::deserializeHeader(const RawBytes &data) {
   VaultHeader h;
   size_t offset = 0;
 
   h.indexRootPage = read<uint64_t>(data, offset);
+  h.dataRootPage = read<uint64_t>(data, offset);
   h.freelistRootPage = read<uint64_t>(data, offset);
 
   h.entryCount = read<uint64_t>(data, offset);
@@ -336,34 +339,13 @@ PageHeader Serialization::deserializePageHeader(const RawBytes &data) {
   return h;
 }
 
-RawBytes Serialization::serializeSlot(const Slot &s) {
-  RawBytes out;
-
-  write(out, s.offset);
-  write(out, s.size);
-  write(out, static_cast<uint8_t>(s.state));
-
-  return out;
-}
-
-Slot Serialization::deserializeSlot(const RawBytes &data) {
-  Slot s;
-
-  size_t offset = 0;
-
-  s.offset = read<uint16_t>(data, offset);
-  s.size = read<uint16_t>(data, offset);
-  s.state = static_cast<SlotState>(read<uint8_t>(data, offset));
-
-  return s;
-}
-
 RawBytes Serialization::serializeSlottedLayout(const SlottedLayout &layout) {
   RawBytes out;
 
-  write(out, layout.slotCount);
   write(out, layout.lower);
   write(out, layout.upper);
+
+  write(out, layout.slots.size());
 
   for (const auto &s : layout.slots) {
     write(out, s.offset);
@@ -382,12 +364,13 @@ SlottedLayout Serialization::deserializeSlottedLayout(const PageHeader &header,
 
   SlottedLayout layout(header, pageSize);
 
-  layout.slotCount = read<uint16_t>(data, offset);
   layout.lower = read<uint16_t>(data, offset);
   layout.upper = read<uint16_t>(data, offset);
-  layout.slots.reserve(layout.slotCount);
 
-  for (uint16_t i = 0; i < layout.slotCount; i++) {
+  uint16_t slotCount = read<uint16_t>(data, offset);
+  layout.slots.reserve(slotCount);
+
+  for (uint16_t i = 0; i < slotCount; i++) {
     Slot s;
     s.offset = read<uint16_t>(data, offset);
     s.size = read<uint16_t>(data, offset);

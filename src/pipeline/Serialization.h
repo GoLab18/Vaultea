@@ -70,9 +70,6 @@ public:
   static RawBytes serializePageHeader(const PageHeader &h);
   static PageHeader deserializePageHeader(const RawBytes &data);
 
-  static RawBytes serializeSlot(const Slot &s);
-  static Slot deserializeSlot(const RawBytes &data);
-
   static RawBytes serializeSlottedLayout(const SlottedLayout &layout);
   static SlottedLayout deserializeSlottedLayout(const PageHeader &header,
                                                 uint32_t pageSize,
