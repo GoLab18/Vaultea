@@ -4,25 +4,43 @@
 
 #include <memory>
 #include <stdexcept>
-#include <vector>
 
 Pager::Pager(StorageEngine &storage, uint32_t pageSize,
-             uint64_t pageRegionOffset, size_t maxPages,
-             std::vector<PageId> freePages)
+             uint64_t pageRegionOffset, PageId freelistRootPage)
     : storage(storage),
       allocator(pageSize, pageRegionOffset,
-                std::unordered_set<PageId>(freePages.begin(), freePages.end()),
+                loadFreelist(freelistRootPage),
                 (storage.fileSize() <= pageRegionOffset)
                     ? 0
                     : (storage.fileSize() - pageRegionOffset + pageSize - 1) /
                           pageSize),
-      pageSize(pageSize), maxPages(maxPages) {}
+      pageSize(pageSize) {}
+
+std::unordered_set<PageId> Pager::loadFreelist(PageId freelistRootPage) {
+    std::unordered_set<PageId> freePages;
+
+    PageId current = freelistRootPage;
+
+    while (current != INVALID_PAGE) {
+        Page &page = getPage(current);
+
+        auto &layout = page.layout->as<FreelistLayout>();
+
+        freePages.reserve(freePages.size() + layout.freePages.size());
+        freePages.insert(layout.freePages.begin(), layout.freePages.end());
+
+        unpin(current);
+        current = layout.header.nextPage;
+    }
+
+    return freePages;
+}
 
 Page &Pager::getPage(PageId id) {
   auto it = cache.find(id);
 
   if (it == cache.end()) {
-    if (cache.size() >= maxPages) {
+    if (cache.size() >= MAX_PAGE_CACHE_SIZE) {
       evictOne();
     }
 
@@ -30,6 +48,7 @@ Page &Pager::getPage(PageId id) {
     it = cache.find(id);
   }
 
+  // TODO it adds a pin and touches (?) -> something ain't right
   it->second.pinCount++;
   touch(id);
 
@@ -49,10 +68,11 @@ void Pager::unpin(PageId id) {
 PageId Pager::allocatePage(PageType type) {
   PageId id = allocator.allocate();
 
-  if (cache.size() >= maxPages) {
+  if (cache.size() >= MAX_PAGE_CACHE_SIZE) {
     evictOne();
   }
 
+  // TODO createPage needs implementation
   cache[id] = createPage(id, type);
 
   touch(id);
@@ -86,11 +106,18 @@ void Pager::freePage(PageId id) {
 }
 
 void Pager::touch(PageId id) {
-  auto it = lruMap.find(id);
+  auto it = cache.find(id);
+  if (it == cache.end())
+    return;
 
-  if (it != lruMap.end()) {
-    lru.erase(it->second);
-    lruMap.erase(it);
+  if (it->second.pinCount > 0) {
+    return;
+  }
+
+  auto lruIt = lruMap.find(id);
+  if (lruIt != lruMap.end()) {
+    lru.erase(lruIt->second);
+    lruMap.erase(lruIt);
   }
 
   lru.push_front(id);
@@ -111,8 +138,6 @@ void Pager::evictOne() {
     Page &page = it->second;
 
     if (page.pinCount > 0) {
-      lru.push_front(victimId);
-      lruMap[victimId] = lru.begin();
       continue;
     }
 
@@ -135,6 +160,7 @@ void Pager::loadPage(PageId id) {
 
   uint64_t offset = allocator.pageOffset(id);
 
+  // TODO shouldn't it throw otherwise (?)
   if (offset < storage.fileSize()) {
     page.data = storage.read(offset, pageSize);
   }

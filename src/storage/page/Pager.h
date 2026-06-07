@@ -12,7 +12,9 @@ using namespace vault::storage::page;
 class Pager {
 public:
   Pager(StorageEngine &storage, uint32_t pageSize, uint64_t pageRegionOffset,
-        size_t maxPages, std::vector<PageId> freePages);
+        PageId freelistRootPage);
+
+  std::unordered_set<PageId> loadFreelist(PageId freelistRootPage);
 
   Page &getPage(PageId id);
 
@@ -29,7 +31,6 @@ private:
   PageAllocator allocator;
 
   uint32_t pageSize;
-  size_t maxPages;
 
   std::unordered_map<PageId, Page> cache;
 
