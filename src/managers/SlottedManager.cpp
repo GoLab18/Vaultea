@@ -2,7 +2,9 @@
 #include "storage/page/SlottedPageHandler.h"
 
 SlottedManager::SlottedManager(Pager &pager, PageId rootPage, PageType pageType)
-    : Manager(pager, rootPage), pageType(pageType) {}
+    : pager(pager), pageType(pageType), rootPage(rootPage) {
+  loadFreeSpaceMap();
+}
 
 PageId SlottedManager::allocatePage() {
   PageId id = pager.allocatePage(pageType);
@@ -11,7 +13,7 @@ PageId SlottedManager::allocatePage() {
 
   auto &layout = page.layout->as<SlottedLayout>();
 
-  insertPage(id, layout.upper - layout.lower);
+  registerPage(id, layout.upper - layout.lower);
 
   pager.unpin(id);
 
@@ -35,14 +37,12 @@ RecordRef SlottedManager::insertRecord(const RawBytes &bytes) {
 
   auto &layout = page.layout->as<SlottedLayout>();
 
-  FreeSpace before = layout.upper - layout.lower;
-
   SlotId slot = SlottedPageHandler::insert(page, bytes.data(),
                                            static_cast<uint16_t>(bytes.size()));
 
   FreeSpace after = layout.upper - layout.lower;
 
-  updatePage(pageId, before, after);
+  updatePageSpace(pageId, after);
 
   pager.unpin(pageId);
 
@@ -65,14 +65,12 @@ std::optional<RecordRef> SlottedManager::updateRecord(const RecordRef &ref,
 
   auto &layout = page.layout->as<SlottedLayout>();
 
-  FreeSpace before = layout.upper - layout.lower;
-
   auto moved = SlottedPageHandler::update(page, ref.slotId, bytes.data(),
                                           static_cast<uint16_t>(bytes.size()));
 
   FreeSpace after = layout.upper - layout.lower;
 
-  updatePage(ref.pageId, before, after);
+  updatePageSpace(ref.pageId, after);
 
   pager.unpin(ref.pageId);
 
@@ -87,13 +85,54 @@ void SlottedManager::deleteRecord(const RecordRef &ref) {
 
   auto &layout = page.layout->as<SlottedLayout>();
 
-  FreeSpace before = layout.upper - layout.lower;
-
   SlottedPageHandler::remove(page, ref.slotId);
 
   FreeSpace after = layout.upper - layout.lower;
 
-  updatePage(ref.pageId, before, after);
+  updatePageSpace(ref.pageId, after);
 
   pager.unpin(ref.pageId);
+}
+
+void SlottedManager::loadFreeSpaceMap() {
+  PageId current = rootPage;
+  PageId prev = INVALID_PAGE;
+
+  while (current != INVALID_PAGE) {
+    Page &page = pager.getPage(current);
+    auto &layout = page.layout->as<SlottedLayout>();
+
+    FreeSpace fs = layout.upper - layout.lower;
+
+    registerPage(current, fs);
+
+    pager.unpin(current);
+
+    prev = current;
+    current = layout.header.nextPage;
+  }
+
+  tailPage = prev;
+}
+
+void SlottedManager::registerPage(PageId id, FreeSpace fs) {
+  auto it = freeSpaceMap.emplace(fs, id);
+  pagePositions[id] = it;
+}
+
+void SlottedManager::updatePageSpace(PageId id, FreeSpace newFs) {
+  auto it = pagePositions.find(id);
+  if (it != pagePositions.end()) {
+    freeSpaceMap.erase(it->second);
+  }
+
+  registerPage(id, newFs);
+}
+
+void SlottedManager::unregisterPage(PageId id) {
+  auto it = pagePositions.find(id);
+  if (it != pagePositions.end()) {
+    freeSpaceMap.erase(it->second);
+    pagePositions.erase(it);
+  }
 }
