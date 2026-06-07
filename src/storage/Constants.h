@@ -17,8 +17,6 @@ inline constexpr std::size_t VAULT_HEADER_SIZE = 56;
 
 inline constexpr std::size_t UUID_SIZE = 16;
 
-using EpochTime = uint64_t;
-
 using RawBytes = std::vector<uint8_t>;
 
 } // namespace vault::storage

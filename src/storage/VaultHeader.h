@@ -1,6 +1,7 @@
 #pragma once
 
 #include "storage/page/Constants.h"
+#include "util/Helpers.h"
 
 #include <cstdint>
 
@@ -8,12 +9,12 @@ using namespace vault::storage::page;
 
 struct VaultHeader {
   PageId indexRootPage;
-  PageId freelistRootPage;
   PageId dataRootPage;
+  PageId freelistRootPage;
 
   uint64_t entryCount;
   uint64_t folderCount;
 
-  uint64_t createdAt;
-  uint64_t updatedAt;
+  vault::util::time::EpochTime createdAt;
+  vault::util::time::EpochTime updatedAt;
 };
