@@ -17,6 +17,8 @@ public:
 
   const IndexEntry *findFolder(const UUID &id);
 
+  const IndexEntry *find(const UUID &id);
+
   std::vector<IndexEntry> findByFolder(const UUID &folderId);
 
   std::vector<IndexEntry> findEntriesByName(const std::string &name);
@@ -33,6 +35,4 @@ private:
 
   absl::btree_multimap<std::string, UUID> byEntryName;
   absl::btree_multimap<std::string, UUID> byFolderName;
-
-  const IndexEntry *find(const UUID &id);
 };
