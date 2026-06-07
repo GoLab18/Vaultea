@@ -5,11 +5,10 @@
 
 static constexpr char HEX[] = "0123456789abcdef";
 
-UUID::UUID(const std::array<uint8_t, vault::storage::UUID_SIZE> &b)
-    : bytes(b) {}
+UUID::UUID(const std::array<uint8_t, UUID_SIZE> &b) : bytes(b) {}
 
 UUID UUID::random() {
-  std::array<uint8_t, vault::storage::UUID_SIZE> b{};
+  std::array<uint8_t, UUID_SIZE> b{};
 
   randombytes_buf(b.data(), b.size());
 
@@ -40,7 +39,7 @@ UUID UUID::fromString(std::string_view str) {
     throw std::runtime_error("Invalid UUID length");
   }
 
-  std::array<uint8_t, vault::storage::UUID_SIZE> bytes{};
+  std::array<uint8_t, UUID_SIZE> bytes{};
 
   int j = 0;
 
@@ -49,7 +48,7 @@ UUID UUID::fromString(std::string_view str) {
       continue;
     }
 
-    if (j >= static_cast<int>(vault::storage::UUID_SIZE)) {
+    if (j >= static_cast<int>(UUID_SIZE)) {
       throw std::runtime_error("UUID parsing overflow");
     }
 
@@ -64,23 +63,21 @@ UUID UUID::fromString(std::string_view str) {
     ++i;
   }
 
-  if (j != static_cast<int>(vault::storage::UUID_SIZE)) {
+  if (j != static_cast<int>(UUID_SIZE)) {
     throw std::runtime_error("UUID parsing failed");
   }
 
   return UUID{bytes};
 }
 
-static UUID fromRaw(const std::array<uint8_t, vault::storage::UUID_SIZE> &b) {
-  return UUID{b};
-}
+static UUID fromRaw(const std::array<uint8_t, UUID_SIZE> &b) { return UUID{b}; }
 
 std::string UUID::toString() const {
   std::string out(36, '\0');
 
   std::size_t j = 0;
 
-  for (std::size_t i = 0; i < vault::storage::UUID_SIZE; ++i) {
+  for (std::size_t i = 0; i < UUID_SIZE; ++i) {
 
     if (i == 4 || i == 6 || i == 8 || i == 10) {
       out[j++] = '-';
@@ -97,9 +94,7 @@ bool UUID::operator==(const UUID &other) const { return bytes == other.bytes; }
 
 bool UUID::operator!=(const UUID &other) const { return !(*this == other); }
 
-const std::array<uint8_t, vault::storage::UUID_SIZE> &UUID::raw() const {
-  return bytes;
-}
+const std::array<uint8_t, UUID_SIZE> &UUID::raw() const { return bytes; }
 
 std::size_t UUID::hash() const noexcept {
 

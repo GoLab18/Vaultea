@@ -12,11 +12,12 @@ inline constexpr uint32_t VERSION = 1;
 inline constexpr std::size_t MAGIC_SIZE = 4;
 inline constexpr std::array<uint8_t, MAGIC_SIZE> MAGIC = {'V', 'T', 'E', 'A'};
 
-// TODO values need adjustment to real sizes
-inline constexpr std::size_t VAULT_PREAMBLE_SIZE = 64;
-inline constexpr std::size_t VAULT_HEADER_SIZE = 64;
+inline constexpr std::size_t VAULT_PREAMBLE_SIZE = 44;
+inline constexpr std::size_t VAULT_HEADER_SIZE = 56;
 
 inline constexpr std::size_t UUID_SIZE = 16;
+
+using EpochTime = uint64_t;
 
 using RawBytes = std::vector<uint8_t>;
 

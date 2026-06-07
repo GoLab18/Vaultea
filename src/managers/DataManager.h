@@ -4,7 +4,6 @@
 #include "models/RecordRef.h"
 
 #include <optional>
-#include <vector>
 
 class DataManager : public SlottedManager {
 public:
