@@ -15,6 +15,11 @@ struct PageHeader {
   PageType type;
   PageId nextPage;
 
+  // TODO don't we need the previous page also (?) -> linked-list like behavior
+  // for for example page freeing case
+
+  // PageId prevPage;
+
   PageHeader()
       : pageId(INVALID_PAGE), type(PageType::Free), nextPage(INVALID_PAGE) {}
 };
@@ -53,7 +58,6 @@ struct Slot {
 };
 
 struct SlottedLayout : public PageLayoutBase {
-  uint16_t slotCount = 0;
   uint16_t lower = HEADER_SIZE;
   uint16_t upper = 0;
 

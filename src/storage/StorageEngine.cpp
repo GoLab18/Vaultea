@@ -68,7 +68,7 @@ uint64_t StorageEngine::append(const uint8_t *data, uint64_t size) {
 }
 
 uint64_t StorageEngine::fileSize() {
+  file.clear();
   file.seekg(0, std::ios::end);
-
   return static_cast<uint64_t>(file.tellg());
 }
