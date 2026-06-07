@@ -1,28 +1,33 @@
 #pragma once
 
 #include "SlottedManager.h"
+#include "index/Config.h"
 #include "models/IndexEntry.h"
-#include "storage/BTreeIndex.h"
 
+#include <memory>
 #include <vector>
 
 class IndexManager : public SlottedManager {
 public:
   explicit IndexManager(Pager &pager, PageId rootPage);
 
+  void loadIndex(PageId rootIndexPage);
+
   void insert(const IndexEntry &entry);
   void update(const IndexEntry &entry);
   void remove(const UUID &id);
 
-  const IndexEntry *find(const UUID &id);
+  const IndexEntry *findEntry(const UUID &id);
+  const IndexEntry *findFolder(const UUID &id);
 
   std::vector<IndexEntry> findByFolder(const UUID &id);
-  std::vector<IndexEntry> findByName(const std::string &query);
+  std::vector<IndexEntry> findEntriesByName(const std::string &query);
+  std::vector<IndexEntry> findFoldersByName(const std::string &query);
 
   std::vector<IndexEntry> scanAll();
 
 private:
-  BTreeIndex index;
+  std::unique_ptr<VaultIndex> index;
 
   PageId allocateIndexPage();
   PageId findIndexPageWithSpace(uint16_t size);
