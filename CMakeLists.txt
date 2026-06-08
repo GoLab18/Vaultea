@@ -131,6 +131,7 @@ target_link_libraries(${PROJECT_NAME}
         Qt::Widgets
         ${SODIUM_LIBRARIES}
         absl::base
+        absl::strings
         lz4
 )
 
