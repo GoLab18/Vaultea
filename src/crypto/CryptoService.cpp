@@ -1,5 +1,6 @@
 #include "CryptoService.h"
 
+#include <cstring>
 #include <sodium.h>
 #include <stdexcept>
 
