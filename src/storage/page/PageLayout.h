@@ -49,7 +49,7 @@ public:
 
 enum class LayoutType : uint8_t { Slotted, Freelist, Free };
 
-enum SlotState : uint8_t { SLOT_USED, SLOT_DELETED };
+enum class SlotState : uint8_t { SlotUsed, SlotDeleted };
 
 struct Slot {
   uint16_t offset;

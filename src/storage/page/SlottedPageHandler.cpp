@@ -13,7 +13,7 @@ bool SlottedPageHandler::hasDeletedSlots(const Page &page) {
   auto &layout = page.layout->as<SlottedLayout>();
 
   for (const auto &slot : layout.slots) {
-    if (slot.state == SLOT_DELETED)
+    if (slot.state == SlotState::SlotDeleted)
       return true;
   }
   return false;
@@ -23,7 +23,7 @@ std::optional<SlotId> SlottedPageHandler::findReusableSlot(const Page &page) {
   auto &layout = page.layout->as<SlottedLayout>();
 
   for (uint16_t i = 0; i < layout.slots.size(); i++) {
-    if (layout.slots[i].state == SLOT_DELETED)
+    if (layout.slots[i].state == SlotState::SlotDeleted)
       return i;
   }
 
@@ -62,9 +62,8 @@ SlotId SlottedPageHandler::insert(Page &page, const uint8_t *data,
   }
 
   layout.slots[slotId] = {
-      .offset = writeOffset, .size = size, .state = SLOT_USED};
+      .offset = writeOffset, .size = size, .state = SlotState::SlotUsed};
 
-  page.dirty = true;
   return slotId;
 }
 
@@ -76,7 +75,7 @@ RawBytes SlottedPageHandler::read(Page &page, SlotId slotId) {
 
   const Slot &s = layout.slots[slotId];
 
-  if (s.state == SLOT_DELETED)
+  if (s.state == SlotState::SlotDeleted)
     throw std::runtime_error("slot deleted");
 
   RawBytes out(s.size);
@@ -95,22 +94,20 @@ std::optional<SlotId> SlottedPageHandler::update(Page &page, SlotId slotId,
 
   Slot &s = layout.slots[slotId];
 
-  if (s.state == SLOT_DELETED)
+  if (s.state == SlotState::SlotDeleted)
     throw std::runtime_error("slot deleted");
 
   // If fits -> overwrite in place
   if (size <= s.size) {
     std::memcpy(page.data.data() + s.offset, data, size);
     s.size = size;
-    page.dirty = true;
     return std::nullopt;
   }
 
   // If it's too large -> relocate
-  s.state = SLOT_DELETED;
+  s.state = SlotState::SlotDeleted;
   SlotId newSlot = insert(page, data, size);
 
-  page.dirty = true;
   return newSlot;
 }
 
@@ -120,8 +117,7 @@ void SlottedPageHandler::remove(Page &page, SlotId slotId) {
   if (slotId >= layout.slots.size())
     throw std::runtime_error("invalid slot");
 
-  layout.slots[slotId].state = SLOT_DELETED;
-  page.dirty = true;
+  layout.slots[slotId].state = SlotState::SlotDeleted;
 }
 
 // Sliding compaction
@@ -134,7 +130,7 @@ void SlottedPageHandler::compact(Page &page) {
   active.reserve(layout.slots.size());
 
   for (auto &slot : layout.slots)
-    if (slot.state == SLOT_USED)
+    if (slot.state == SlotState::SlotUsed)
       active.push_back(&slot);
 
   std::sort(active.begin(), active.end(),
@@ -149,5 +145,4 @@ void SlottedPageHandler::compact(Page &page) {
   }
 
   layout.upper = writeOffset;
-  page.dirty = true;
 }
