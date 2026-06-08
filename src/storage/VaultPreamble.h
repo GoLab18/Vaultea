@@ -20,4 +20,6 @@ struct VaultPreamble {
   vault::crypto::KeyCheck keyCheck;
 
   uint32_t pageSize;
+
+  uint32_t headerSize;
 };
