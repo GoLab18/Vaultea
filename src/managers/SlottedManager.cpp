@@ -3,7 +3,12 @@
 
 SlottedManager::SlottedManager(Pager &pager, PageId rootPage, PageType pageType)
     : pager(pager), pageType(pageType), rootPage(rootPage) {
-  loadFreeSpaceMap();
+  if (rootPage == INVALID_PAGE) {
+    this->rootPage = allocatePage();
+    this->tailPage = this->rootPage;
+  } else {
+    loadFreeSpaceMap();
+  }
 }
 
 PageId SlottedManager::allocatePage() {
@@ -15,6 +20,8 @@ PageId SlottedManager::allocatePage() {
 
   registerPage(id, layout.upper - layout.lower);
 
+  page.dirty = true;
+
   pager.unpin(id);
 
   return id;
@@ -23,11 +30,25 @@ PageId SlottedManager::allocatePage() {
 PageId SlottedManager::findPageWithSpace(uint16_t size) {
   auto it = freeSpaceMap.lower_bound(size);
 
-  if (it == freeSpaceMap.end()) {
-    return allocatePage();
+  if (it != freeSpaceMap.end()) {
+    return it->second;
   }
 
-  return it->second;
+  PageId newPage = allocatePage();
+
+  if (tailPage != INVALID_PAGE) {
+
+    Page &tail = pager.getPage(tailPage);
+
+    tail.layout->header.nextPage = newPage;
+    tail.dirty = true;
+
+    pager.unpin(tailPage);
+  }
+
+  tailPage = newPage;
+
+  return newPage;
 }
 
 RecordRef SlottedManager::insertRecord(const RawBytes &bytes) {
@@ -99,6 +120,8 @@ void SlottedManager::deleteRecord(const RecordRef &ref) {
 
   pager.unpin(ref.pageId);
 }
+
+PageId SlottedManager::getRootPage() const { return rootPage; }
 
 void SlottedManager::loadFreeSpaceMap() {
   PageId current = rootPage;

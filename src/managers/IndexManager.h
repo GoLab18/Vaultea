@@ -26,6 +26,8 @@ public:
 
   std::vector<IndexEntry> scanAll();
 
+  PageId rootPage() const;
+
 private:
   std::unique_ptr<VaultIndex> index;
 

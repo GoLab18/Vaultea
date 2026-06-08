@@ -8,8 +8,7 @@
 Pager::Pager(StorageEngine &storage, uint32_t pageSize,
              uint64_t pageRegionOffset, PageId freelistRootPage)
     : storage(storage),
-      allocator(pageSize, pageRegionOffset,
-                loadFreelist(freelistRootPage),
+      allocator(pageSize, pageRegionOffset, loadFreelist(freelistRootPage),
                 (storage.fileSize() <= pageRegionOffset)
                     ? 0
                     : (storage.fileSize() - pageRegionOffset + pageSize - 1) /
@@ -17,23 +16,23 @@ Pager::Pager(StorageEngine &storage, uint32_t pageSize,
       pageSize(pageSize) {}
 
 std::unordered_set<PageId> Pager::loadFreelist(PageId freelistRootPage) {
-    std::unordered_set<PageId> freePages;
+  std::unordered_set<PageId> freePages;
 
-    PageId current = freelistRootPage;
+  PageId current = freelistRootPage;
 
-    while (current != INVALID_PAGE) {
-        Page &page = getPage(current);
+  while (current != INVALID_PAGE) {
+    Page &page = getPage(current);
 
-        auto &layout = page.layout->as<FreelistLayout>();
+    auto &layout = page.layout->as<FreelistLayout>();
 
-        freePages.reserve(freePages.size() + layout.freePages.size());
-        freePages.insert(layout.freePages.begin(), layout.freePages.end());
+    freePages.reserve(freePages.size() + layout.freePages.size());
+    freePages.insert(layout.freePages.begin(), layout.freePages.end());
 
-        unpin(current);
-        current = layout.header.nextPage;
-    }
+    unpin(current);
+    current = layout.header.nextPage;
+  }
 
-    return freePages;
+  return freePages;
 }
 
 Page &Pager::getPage(PageId id) {
@@ -72,12 +71,42 @@ PageId Pager::allocatePage(PageType type) {
     evictOne();
   }
 
-  // TODO createPage needs implementation
   cache[id] = createPage(id, type);
 
   touch(id);
 
   return id;
+}
+
+Page Pager::createPage(PageId id, PageType type) {
+  Page page;
+
+  page.id = id;
+  page.data.resize(pageSize);
+
+  PageHeader header;
+  header.pageId = id;
+  header.type = type;
+
+  auto layoutType = toLayoutType(header.type);
+
+  switch (layoutType) {
+  case LayoutType::Slotted:
+    page.layout = std::make_unique<SlottedLayout>(header, pageSize);
+    break;
+
+  case LayoutType::Freelist:
+    page.layout = std::make_unique<FreelistLayout>(header);
+    break;
+
+  case LayoutType::Free:
+    page.layout = std::make_unique<FreeLayout>(header);
+    break;
+  }
+
+  page.dirty = true;
+
+  return page;
 }
 
 void Pager::freePage(PageId id) {
@@ -167,10 +196,10 @@ void Pager::loadPage(PageId id) {
 
   PageHeader header = Serialization::deserializePageHeader(page.data);
 
-  switch (header.type) {
+  auto layoutType = toLayoutType(header.type);
 
-  case PageType::Data:
-  case PageType::Index: {
+  switch (layoutType) {
+  case LayoutType::Slotted: {
     SlottedLayout layout =
         Serialization::deserializeSlottedLayout(header, pageSize, page.data);
 
@@ -178,7 +207,7 @@ void Pager::loadPage(PageId id) {
     break;
   }
 
-  case PageType::Freelist: {
+  case LayoutType::Freelist: {
     FreelistLayout layout =
         Serialization::deserializeFreelistLayout(header, page.data);
 
@@ -186,7 +215,7 @@ void Pager::loadPage(PageId id) {
     break;
   }
 
-  case PageType::Free: {
+  case LayoutType::Free: {
     FreeLayout layout = Serialization::deserializeFreeLayout(header);
 
     page.layout = std::make_unique<FreeLayout>(std::move(layout));
@@ -205,20 +234,20 @@ void Pager::writePageToDisk(Page &page) {
 
   RawBytes layoutBytes;
 
-  switch (page.layout->header.type) {
+  auto layoutType = toLayoutType(page.layout->header.type);
 
-  case PageType::Data:
-  case PageType::Index:
+  switch (layoutType) {
+  case LayoutType::Slotted:
     layoutBytes =
         Serialization::serializeSlottedLayout(page.layout->as<SlottedLayout>());
     break;
 
-  case PageType::Freelist:
+  case LayoutType::Freelist:
     layoutBytes = Serialization::serializeFreelistLayout(
         page.layout->as<FreelistLayout>());
     break;
 
-  case PageType::Free:
+  case LayoutType::Free:
     layoutBytes =
         Serialization::serializeFreeLayout(page.layout->as<FreeLayout>());
     break;

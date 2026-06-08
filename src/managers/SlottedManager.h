@@ -29,6 +29,8 @@ protected:
 
   void deleteRecord(const RecordRef &ref);
 
+  PageId getRootPage() const;
+
 private:
   PageType pageType;
 
