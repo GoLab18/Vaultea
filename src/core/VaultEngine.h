@@ -6,6 +6,7 @@
 #include "models/Folder.h"
 #include "models/VaultEntry.h"
 #include "pipeline/Codec.h"
+#include "pipeline/ICompressor.h"
 #include "storage/StorageEngine.h"
 #include "storage/VaultHeader.h"
 #include "storage/VaultPreamble.h"
@@ -27,6 +28,7 @@ public:
 
   std::vector<VaultEntry> getAllEntries();
   std::vector<VaultEntry> getByFolder(const std::string &folderId);
+
   std::vector<VaultEntry> searchEntries(const std::string &query);
 
   std::string createFolder(const std::string &name);
@@ -35,18 +37,26 @@ public:
   std::vector<Folder> getFolders();
   std::vector<Folder> searchFolders(const std::string &query);
 
+  bool addToFolder(const std::string &entryId, const std::string &folderId);
+
   uint64_t entryCount() const;
   uint64_t folderCount() const;
 
 private:
   void validateOpened() const;
-  void loadOrInitHeader();
-  void persistHeader();
-  void initNewVault();
 
+  void commit();
+
+  void persistPreamble();
+
+  void loadOrInitHeaderAndPreamble();
+  void persistHeader();
+  void processHeader(RawBytes &out) const;
+  void unprocessHeader(const RawBytes &in);
+
+  void initNewVault();
   bool verifyPassword();
 
-private:
   std::string path;
   std::string password;
 
@@ -62,6 +72,7 @@ private:
   std::unique_ptr<IndexManager> indexManager;
 
   std::unique_ptr<Codec> codec;
+  std::shared_ptr<ICompressor> compressor;
 
   VaultPreamble preamble;
   VaultHeader header;
