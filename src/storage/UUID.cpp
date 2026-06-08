@@ -90,10 +90,6 @@ std::string UUID::toString() const {
   return out;
 }
 
-bool UUID::operator==(const UUID &other) const { return bytes == other.bytes; }
-
-bool UUID::operator!=(const UUID &other) const { return !(*this == other); }
-
 const std::array<uint8_t, UUID_SIZE> &UUID::raw() const { return bytes; }
 
 std::size_t UUID::hash() const noexcept {

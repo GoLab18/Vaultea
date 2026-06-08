@@ -22,8 +22,17 @@ public:
 
   std::string toString() const;
 
-  bool operator==(const UUID &other) const;
-  bool operator!=(const UUID &other) const;
+  bool operator==(const UUID &other) const noexcept {
+    return bytes == other.bytes;
+  }
+
+  bool operator!=(const UUID &other) const noexcept {
+    return !(*this == other);
+  }
+
+  bool operator<(const UUID &other) const noexcept {
+    return bytes < other.bytes;
+  }
 
   const std::array<uint8_t, UUID_SIZE> &raw() const;
 
