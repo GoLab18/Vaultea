@@ -35,15 +35,13 @@ SlotId SlottedPageHandler::insert(Page &page, const uint8_t *data,
   auto &layout = page.layout->as<SlottedLayout>();
 
   auto reusable = findReusableSlot(page);
-  bool needsNewSlot = reusable.has_value();
+  bool needsNewSlot = !reusable.has_value();
   uint16_t needed = size + (needsNewSlot ? SLOT_SIZE : 0);
 
   if (freeSpace(page) < needed && hasDeletedSlots(page)) {
     compact(page);
   }
 
-  // TODO probably needs to signal the external caller about it for him to
-  // allocate a new page
   if (freeSpace(page) < needed) {
     throw std::runtime_error("page full");
   }
