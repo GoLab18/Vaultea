@@ -229,6 +229,7 @@ RawBytes Serialization::serializePreamble(const VaultPreamble &p) {
 
   write(out, p.uuid);
   write(out, p.salt);
+  write(out, p.keyCheck);
 
   write(out, p.pageSize);
 
@@ -245,6 +246,7 @@ VaultPreamble Serialization::deserializePreamble(const RawBytes &data) {
 
   readInto(data, offset, p.uuid);
   readInto(data, offset, p.salt);
+  readInto(data, offset, p.keyCheck);
 
   p.pageSize = read<uint32_t>(data, offset);
 

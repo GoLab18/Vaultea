@@ -2,9 +2,6 @@
 
 #include "storage/Constants.h"
 
-#include <cstdint>
-#include <vector>
-
 using namespace vault::storage;
 
 class Compression {

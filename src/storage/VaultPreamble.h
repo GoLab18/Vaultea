@@ -17,6 +17,7 @@ struct VaultPreamble {
   UUID uuid;
 
   vault::crypto::Salt salt;
+  vault::crypto::KeyCheck keyCheck;
 
   uint32_t pageSize;
 };
