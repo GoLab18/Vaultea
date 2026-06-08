@@ -11,6 +11,10 @@ pkg_check_modules(SODIUM REQUIRED libsodium)
 
 include(FetchContent)
 
+# Abseil
+set(ABSL_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(ABSL_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+
 FetchContent_Declare(
     absl
     GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
@@ -18,6 +22,19 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(absl)
+
+# LZ4
+set(LZ4_BUILD_CLI OFF CACHE BOOL "" FORCE)
+set(LZ4_BUILD_LEGACY_LZ4C OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
+FetchContent_Declare(
+    lz4
+    GIT_REPOSITORY https://github.com/lz4/lz4.git
+    GIT_TAG v1.10.0
+)
+
+FetchContent_MakeAvailable(lz4)
 
 qt_standard_project_setup()
 
@@ -36,6 +53,8 @@ qt_add_executable(${PROJECT_NAME}
     # CORE
     src/core/VaultEngine.cpp
     src/core/VaultEngine.h
+    src/core/VaultLoader.cpp
+    src/core/VaultLoader.h
 
     # CRYPTO
     src/crypto/Constants.h
@@ -59,8 +78,7 @@ qt_add_executable(${PROJECT_NAME}
 
     # MODELS
     src/models/BaseVaultObject.h
-    src/models/EncryptedBlob.h
-    src/models/EntryTypes.h
+    src/models/ProcessedBlob.h
     src/models/Folder.h
     src/models/IndexEntry.h
     src/models/RecordRef.h
@@ -68,10 +86,11 @@ qt_add_executable(${PROJECT_NAME}
 
     # PIPELINE
     src/pipeline/Codec.h
-    src/pipeline/Compression.cpp
-    src/pipeline/Compression.h
     src/pipeline/DefaultCodec.cpp
     src/pipeline/DefaultCodec.h
+    src/pipeline/ICompressor.h
+    src/pipeline/LZ4Compressor.cpp
+    src/pipeline/LZ4Compressor.h
     src/pipeline/Serialization.cpp
     src/pipeline/Serialization.h
 
@@ -82,9 +101,7 @@ qt_add_executable(${PROJECT_NAME}
     src/storage/UUID.cpp
     src/storage/UUID.h
     src/storage/VaultHeader.h
-    src/storage/VaultLayout.h
     src/storage/VaultPreamble.h
-    src/storage/VaultTypes.h
 
     src/storage/page/Constants.h
     src/storage/page/Page.h
@@ -98,6 +115,7 @@ qt_add_executable(${PROJECT_NAME}
 
     # UTIL
     src/util/Helpers.h
+    src/core/VaultLoader.h src/core/VaultLoader.cpp
 )
 
 
@@ -112,6 +130,8 @@ target_link_libraries(${PROJECT_NAME}
         Qt::Core
         Qt::Widgets
         ${SODIUM_LIBRARIES}
+        absl::base
+        lz4
 )
 
 install(TARGETS ${PROJECT_NAME}
