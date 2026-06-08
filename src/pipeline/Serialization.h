@@ -31,9 +31,9 @@ KNOWN LIMITATIONS (TO FIX LATER)
    Fix: add checksum (e.g., xxHash/SHA-256 per blob)
 */
 
-#include "models/EncryptedBlob.h"
 #include "models/Folder.h"
 #include "models/IndexEntry.h"
+#include "models/ProcessedBlob.h"
 #include "models/VaultEntry.h"
 #include "storage/Constants.h"
 #include "storage/VaultHeader.h"
@@ -42,7 +42,6 @@ KNOWN LIMITATIONS (TO FIX LATER)
 
 #include <cstring>
 #include <string>
-#include <type_traits>
 
 using namespace vault::storage;
 using namespace vault::storage::page;
@@ -64,8 +63,8 @@ public:
   static RawBytes serializeHeader(const VaultHeader &h);
   static VaultHeader deserializeHeader(const RawBytes &data);
 
-  static RawBytes serializeEncryptedBlob(const EncryptedBlob &blob);
-  static EncryptedBlob deserializeEncryptedBlob(const RawBytes &data);
+  static RawBytes serializeProcessedBlob(const ProcessedBlob &blob);
+  static ProcessedBlob deserializeProcessedBlob(const RawBytes &data);
 
   static RawBytes serializePageHeader(const PageHeader &h);
   static PageHeader deserializePageHeader(const RawBytes &data);

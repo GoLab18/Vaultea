@@ -3,9 +3,12 @@
 #include "storage/VaultPreamble.h"
 #include "storage/page/Constants.h"
 #include "storage/page/PageLayout.h"
+#include "util/Helpers.h"
 
 #include <cstdint>
 #include <cstring>
+
+using namespace vault::util::time;
 
 RawBytes Serialization::serializeEntry(const VaultEntry &e) {
   RawBytes out;
@@ -17,8 +20,7 @@ RawBytes Serialization::serializeEntry(const VaultEntry &e) {
   write(out, e.createdAt);
   write(out, e.updatedAt);
 
-  uint32_t type = static_cast<uint32_t>(e.type);
-  write(out, type);
+  write(out, e.type);
 
   switch (e.type) {
   case EntryType::Login: {
@@ -68,10 +70,10 @@ VaultEntry Serialization::deserializeEntry(const RawBytes &data) {
   e.name = readString(data, offset);
   e.folderId = readUUID(data, offset);
 
-  e.createdAt = read<uint64_t>(data, offset);
-  e.updatedAt = read<uint64_t>(data, offset);
+  e.createdAt = read<EpochTime>(data, offset);
+  e.updatedAt = read<EpochTime>(data, offset);
 
-  e.type = static_cast<EntryType>(read<uint32_t>(data, offset));
+  e.type = read<EntryType>(data, offset);
 
   switch (e.type) {
   case EntryType::Login: {
@@ -145,8 +147,8 @@ Folder Serialization::deserializeFolder(const RawBytes &data) {
   f.id = readUUID(data, offset);
   f.name = readString(data, offset);
 
-  f.createdAt = read<uint64_t>(data, offset);
-  f.updatedAt = read<uint64_t>(data, offset);
+  f.createdAt = read<EpochTime>(data, offset);
+  f.updatedAt = read<EpochTime>(data, offset);
 
   return f;
 }
@@ -159,8 +161,6 @@ RawBytes Serialization::serializeIndexEntry(const IndexEntry &e) {
 
   write(out, e.dataRef.pageId);
   write(out, e.dataRef.slotId);
-
-  write(out, static_cast<uint8_t>(e.compressed));
 
   switch (e.type) {
 
@@ -187,11 +187,9 @@ IndexEntry Serialization::deserializeIndexEntry(const RawBytes &data) {
   size_t offset = 0;
 
   e.id = readUUID(data, offset);
-  e.type = static_cast<IndexObjectType>(read<uint8_t>(data, offset));
+  e.type = read<IndexObjectType>(data, offset);
 
   e.dataRef = {read<PageId>(data, offset), read<SlotId>(data, offset)};
-
-  e.compressed = static_cast<bool>(read<uint8_t>(data, offset));
 
   switch (e.type) {
 
@@ -232,12 +230,13 @@ RawBytes Serialization::serializePreamble(const VaultPreamble &p) {
   write(out, p.keyCheck);
 
   write(out, p.pageSize);
+  write(out, p.headerSize);
 
   return out;
 }
 
 VaultPreamble Serialization::deserializePreamble(const RawBytes &data) {
-  VaultPreamble p{};
+  VaultPreamble p;
   size_t offset = 0;
 
   readInto(data, offset, p.magic);
@@ -249,6 +248,7 @@ VaultPreamble Serialization::deserializePreamble(const RawBytes &data) {
   readInto(data, offset, p.keyCheck);
 
   p.pageSize = read<uint32_t>(data, offset);
+  p.headerSize = read<uint32_t>(data, offset);
 
   return p;
 }
@@ -269,47 +269,53 @@ RawBytes Serialization::serializeHeader(const VaultHeader &h) {
   return out;
 }
 
-// TODO adjust template params for "read" etc. to use aliases like EpochTime
-// etc. (no static casting also)
 VaultHeader Serialization::deserializeHeader(const RawBytes &data) {
   VaultHeader h;
   size_t offset = 0;
 
-  h.indexRootPage = read<uint64_t>(data, offset);
-  h.dataRootPage = read<uint64_t>(data, offset);
-  h.freelistRootPage = read<uint64_t>(data, offset);
+  h.indexRootPage = read<PageId>(data, offset);
+  h.dataRootPage = read<PageId>(data, offset);
+  h.freelistRootPage = read<PageId>(data, offset);
 
   h.entryCount = read<uint64_t>(data, offset);
   h.folderCount = read<uint64_t>(data, offset);
 
-  h.createdAt = read<uint64_t>(data, offset);
-  h.updatedAt = read<uint64_t>(data, offset);
+  h.createdAt = read<EpochTime>(data, offset);
+  h.updatedAt = read<EpochTime>(data, offset);
 
   return h;
 }
 
-RawBytes Serialization::serializeEncryptedBlob(const EncryptedBlob &blob) {
+RawBytes Serialization::serializeProcessedBlob(const ProcessedBlob &blob) {
   RawBytes out;
 
+  write(out, blob.compressionType);
+  write(out, blob.originalSize);
+
   write(out, blob.nonce);
-  write(out, static_cast<uint32_t>(blob.ciphertext.size()));
+
+  uint32_t size = static_cast<uint32_t>(blob.ciphertext.size());
+  write(out, size);
 
   out.insert(out.end(), blob.ciphertext.begin(), blob.ciphertext.end());
 
   return out;
 }
 
-EncryptedBlob Serialization::deserializeEncryptedBlob(const RawBytes &data) {
+ProcessedBlob Serialization::deserializeProcessedBlob(const RawBytes &data) {
   size_t offset = 0;
 
-  EncryptedBlob blob;
+  ProcessedBlob blob;
+
+  blob.compressionType = read<CompressionType>(data, offset);
+  blob.originalSize = read<uint32_t>(data, offset);
 
   readInto(data, offset, blob.nonce);
 
   uint32_t size = read<uint32_t>(data, offset);
 
   if (offset + size > data.size()) {
-    throw std::runtime_error("EncryptedBlob corrupted or truncated");
+    throw std::runtime_error("Processed blob corrupted or truncated");
   }
 
   blob.ciphertext.resize(size);
@@ -323,7 +329,7 @@ RawBytes Serialization::serializePageHeader(const PageHeader &h) {
   RawBytes out;
 
   write(out, h.pageId);
-  write(out, static_cast<uint8_t>(h.type));
+  write(out, h.type);
   write(out, h.nextPage);
 
   return out;
@@ -335,7 +341,7 @@ PageHeader Serialization::deserializePageHeader(const RawBytes &data) {
   size_t offset = 0;
 
   h.pageId = read<PageId>(data, offset);
-  h.type = static_cast<PageType>(read<uint8_t>(data, offset));
+  h.type = read<PageType>(data, offset);
   h.nextPage = read<PageId>(data, offset);
 
   return h;
@@ -352,7 +358,7 @@ RawBytes Serialization::serializeSlottedLayout(const SlottedLayout &layout) {
   for (const auto &s : layout.slots) {
     write(out, s.offset);
     write(out, s.size);
-    write(out, static_cast<uint8_t>(s.state));
+    write(out, s.state);
   }
 
   return out;
@@ -376,7 +382,7 @@ SlottedLayout Serialization::deserializeSlottedLayout(const PageHeader &header,
     Slot s;
     s.offset = read<uint16_t>(data, offset);
     s.size = read<uint16_t>(data, offset);
-    s.state = static_cast<SlotState>(read<uint8_t>(data, offset));
+    s.state = read<SlotState>(data, offset);
     layout.slots.push_back(s);
   }
 
