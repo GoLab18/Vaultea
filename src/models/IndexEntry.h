@@ -27,8 +27,6 @@ struct IndexEntry {
 
   RecordRef dataRef;
 
-  bool compressed;
-
   IndexPayload payload;
 };
 
