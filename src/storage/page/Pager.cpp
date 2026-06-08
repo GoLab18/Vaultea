@@ -47,11 +47,14 @@ Page &Pager::getPage(PageId id) {
     it = cache.find(id);
   }
 
-  // TODO it adds a pin and touches (?) -> something ain't right
-  it->second.pinCount++;
   touch(id);
 
   return it->second;
+}
+
+void Pager::pin(PageId id) {
+  Page &page = getPage(id);
+  page.pinCount++;
 }
 
 void Pager::unpin(PageId id) {
@@ -117,14 +120,12 @@ void Pager::freePage(PageId id) {
   }
 
   PageHeader header;
-
   header.pageId = id;
   header.type = PageType::Free;
   header.nextPage = INVALID_PAGE;
 
   page.layout = std::make_unique<FreeLayout>(header);
 
-  // TODO might be redundant considering encryption
   std::fill(page.data.begin(), page.data.end(), 0);
 
   page.dirty = true;
@@ -189,10 +190,11 @@ void Pager::loadPage(PageId id) {
 
   uint64_t offset = allocator.pageOffset(id);
 
-  // TODO shouldn't it throw otherwise (?)
-  if (offset < storage.fileSize()) {
-    page.data = storage.read(offset, pageSize);
+  if (offset + pageSize > storage.fileSize()) {
+    throw std::runtime_error("page not found on disk");
   }
+
+  page.data = storage.read(offset, pageSize);
 
   PageHeader header = Serialization::deserializePageHeader(page.data);
 

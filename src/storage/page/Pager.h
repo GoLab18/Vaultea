@@ -18,6 +18,7 @@ public:
 
   Page &getPage(PageId id);
 
+  void pin(PageId id);
   void unpin(PageId id);
 
   PageId allocatePage(PageType type);

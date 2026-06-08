@@ -3,18 +3,17 @@
 #include "SlottedManager.h"
 #include "index/Config.h"
 #include "models/IndexEntry.h"
+#include "storage/Constants.h"
 
 #include <memory>
 #include <vector>
 
 class IndexManager : public SlottedManager {
 public:
-  explicit IndexManager(Pager &pager, PageId rootPage);
+  explicit IndexManager(Pager &pager, PageId rootPage, std::vector<LoadedIndexEntry> loadedEntries);
 
-  void loadIndex(PageId rootIndexPage);
-
-  void insert(const IndexEntry &entry);
-  void update(const IndexEntry &entry);
+  void insert(const IndexEntry &entry, const RawBytes &processedBytes);
+  void update(const IndexEntry &entry, const RawBytes &processedBytes);
   void remove(const UUID &id);
 
   const IndexEntry *findEntry(const UUID &id);

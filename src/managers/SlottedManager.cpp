@@ -15,6 +15,7 @@ PageId SlottedManager::allocatePage() {
   PageId id = pager.allocatePage(pageType);
 
   Page &page = pager.getPage(id);
+  pager.pin(id);
 
   auto &layout = page.layout->as<SlottedLayout>();
 
@@ -37,8 +38,8 @@ PageId SlottedManager::findPageWithSpace(uint16_t size) {
   PageId newPage = allocatePage();
 
   if (tailPage != INVALID_PAGE) {
-
     Page &tail = pager.getPage(tailPage);
+    pager.pin(tailPage);
 
     tail.layout->header.nextPage = newPage;
     tail.dirty = true;
@@ -55,6 +56,7 @@ RecordRef SlottedManager::insertRecord(const RawBytes &bytes) {
   PageId pageId = findPageWithSpace(static_cast<uint16_t>(bytes.size()));
 
   Page &page = pager.getPage(pageId);
+  pager.pin(pageId);
 
   auto &layout = page.layout->as<SlottedLayout>();
 
@@ -62,10 +64,9 @@ RecordRef SlottedManager::insertRecord(const RawBytes &bytes) {
                                            static_cast<uint16_t>(bytes.size()));
 
   FreeSpace after = layout.upper - layout.lower;
-
   updatePageSpace(pageId, after);
 
-  // TODO would be good to flush the changes here
+  page.dirty = true;
 
   pager.unpin(pageId);
 
@@ -74,6 +75,7 @@ RecordRef SlottedManager::insertRecord(const RawBytes &bytes) {
 
 RawBytes SlottedManager::readRecord(const RecordRef &ref) {
   Page &page = pager.getPage(ref.pageId);
+  pager.pin(ref.pageId);
 
   auto bytes = SlottedPageHandler::read(page, ref.slotId);
 
@@ -85,6 +87,7 @@ RawBytes SlottedManager::readRecord(const RecordRef &ref) {
 std::optional<RecordRef> SlottedManager::updateRecord(const RecordRef &ref,
                                                       const RawBytes &bytes) {
   Page &page = pager.getPage(ref.pageId);
+  pager.pin(ref.pageId);
 
   auto &layout = page.layout->as<SlottedLayout>();
 
@@ -92,10 +95,9 @@ std::optional<RecordRef> SlottedManager::updateRecord(const RecordRef &ref,
                                           static_cast<uint16_t>(bytes.size()));
 
   FreeSpace after = layout.upper - layout.lower;
-
   updatePageSpace(ref.pageId, after);
 
-  // TODO would be good to flush the changes here
+  page.dirty = true;
 
   pager.unpin(ref.pageId);
 
@@ -107,16 +109,16 @@ std::optional<RecordRef> SlottedManager::updateRecord(const RecordRef &ref,
 
 void SlottedManager::deleteRecord(const RecordRef &ref) {
   Page &page = pager.getPage(ref.pageId);
+  pager.pin(ref.pageId);
 
   auto &layout = page.layout->as<SlottedLayout>();
 
   SlottedPageHandler::remove(page, ref.slotId);
 
   FreeSpace after = layout.upper - layout.lower;
-
   updatePageSpace(ref.pageId, after);
 
-  // TODO would be good to flush the changes here
+  page.dirty = true;
 
   pager.unpin(ref.pageId);
 }
@@ -129,6 +131,8 @@ void SlottedManager::loadFreeSpaceMap() {
 
   while (current != INVALID_PAGE) {
     Page &page = pager.getPage(current);
+    pager.pin(current);
+
     auto &layout = page.layout->as<SlottedLayout>();
 
     FreeSpace fs = layout.upper - layout.lower;
