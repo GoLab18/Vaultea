@@ -1,10 +1,11 @@
 #pragma once
 
-#include "crypto/CryptoService.h"
+#include "crypto/Constants.h"
 #include "managers/DataManager.h"
 #include "managers/IndexManager.h"
 #include "models/Folder.h"
 #include "models/VaultEntry.h"
+#include "pipeline/Codec.h"
 #include "storage/StorageEngine.h"
 #include "storage/VaultHeader.h"
 #include "storage/VaultPreamble.h"
@@ -43,22 +44,25 @@ private:
   void persistHeader();
   void initNewVault();
 
+  bool verifyPassword();
+
 private:
   std::string path;
   std::string password;
 
   bool opened = false;
 
-  CryptoService crypto;
+  vault::crypto::Key masterKey;
 
   StorageEngine storage;
 
-  // TODO do these three actually need to be wrapped in unique_ptr (?)
   std::unique_ptr<Pager> pager;
 
   std::unique_ptr<DataManager> dataManager;
   std::unique_ptr<IndexManager> indexManager;
 
-  VaultPreamble preamble{};
-  VaultHeader header{};
+  std::unique_ptr<Codec> codec;
+
+  VaultPreamble preamble;
+  VaultHeader header;
 };

@@ -1,4 +1,6 @@
 #include "VaultEngine.h"
+#include "crypto/CryptoService.h"
+#include "pipeline/DefaultCodec.h"
 #include "pipeline/Serialization.h"
 #include "storage/Constants.h"
 #include "util/Helpers.h"
@@ -30,17 +32,18 @@ void VaultEngine::initNewVault() {
   preamble.magic = MAGIC;
   preamble.version = VERSION;
   preamble.uuid = UUID::random();
-  preamble.salt = crypto.generateSalt();
+
+  preamble.salt = CryptoService::generateSalt();
+
+  masterKey = CryptoService::deriveMasterKey(password, preamble.salt);
+
+  preamble.keyCheck = CryptoService::deriveKeyCheck(masterKey);
+
   preamble.pageSize = page::DEFAULT_PAGE_SIZE;
 
-  auto key = crypto.deriveMasterKey(password, preamble.salt);
-
-  // Don't they require allocation (?)
   header.indexRootPage = page::INVALID_PAGE;
   header.dataRootPage = page::INVALID_PAGE;
 
-  // TODO lazy assignment -> assigned only on first free page added (?)
-  // Don't know how to handle that properly though
   header.freelistRootPage = page::INVALID_PAGE;
 
   header.entryCount = 0;
@@ -52,14 +55,19 @@ void VaultEngine::initNewVault() {
   storage.write(0, Serialization::serializePreamble(preamble).data(),
                 VAULT_PREAMBLE_SIZE);
 
-  persistHeader();
-
   pager = std::make_unique<Pager>(storage, preamble.pageSize,
                                   VAULT_PREAMBLE_SIZE + VAULT_HEADER_SIZE,
                                   header.freelistRootPage);
 
   dataManager = std::make_unique<DataManager>(*pager, header.dataRootPage);
   indexManager = std::make_unique<IndexManager>(*pager, header.indexRootPage);
+
+  header.dataRootPage = dataManager->rootPage();
+  header.indexRootPage = indexManager->rootPage();
+
+  codec = std::make_unique<DefaultCodec>(masterKey);
+
+  persistHeader();
 }
 
 bool VaultEngine::openVault(const std::string &path,
@@ -72,6 +80,11 @@ bool VaultEngine::openVault(const std::string &path,
 
   loadOrInitHeader();
 
+  masterKey = CryptoService::deriveMasterKey(password, preamble.salt);
+  if (!verifyPassword()) {
+    return false;
+  }
+
   pager = std::make_unique<Pager>(storage, preamble.pageSize,
                                   VAULT_PREAMBLE_SIZE + VAULT_HEADER_SIZE,
                                   header.freelistRootPage);
@@ -79,10 +92,17 @@ bool VaultEngine::openVault(const std::string &path,
   dataManager = std::make_unique<DataManager>(*pager, header.dataRootPage);
   indexManager = std::make_unique<IndexManager>(*pager, header.indexRootPage);
 
+  header.dataRootPage = dataManager->rootPage();
+  header.indexRootPage = indexManager->rootPage();
+
+  codec = std::make_unique<DefaultCodec>(masterKey);
+
   opened = true;
   return true;
 }
 
+// TODO this should also handle encryption etc. because header is supposed to be
+// encrypted
 void VaultEngine::loadOrInitHeader() {
   auto preambleBytes = storage.read(0, VAULT_PREAMBLE_SIZE);
   preamble = Serialization::deserializePreamble(preambleBytes);
@@ -95,6 +115,9 @@ void VaultEngine::closeVault() {
   if (!opened)
     return;
 
+  header.dataRootPage = dataManager->rootPage();
+  header.indexRootPage = indexManager->rootPage();
+
   persistHeader();
 
   pager->flush();
@@ -103,10 +126,16 @@ void VaultEngine::closeVault() {
   opened = false;
 }
 
+// TODO if header is encrypted, this also needs adjustment
 void VaultEngine::persistHeader() {
   storage.write(VAULT_PREAMBLE_SIZE,
                 Serialization::serializeHeader(header).data(),
                 VAULT_HEADER_SIZE);
+}
+
+bool VaultEngine::verifyPassword() {
+  const auto computed = CryptoService::deriveKeyCheck(masterKey);
+  return computed == preamble.keyCheck;
 }
 
 std::string VaultEngine::addEntry(const VaultEntry &entry) {
@@ -121,7 +150,7 @@ std::string VaultEngine::addEntry(const VaultEntry &entry) {
       .type = IndexObjectType::Entry,
       .dataRef = ref,
       .compressed = false,
-      .payload = ItemIndexMeta{.folderId = entry.id, .name = entry.name}};
+      .payload = ItemIndexMeta{.folderId = entry.folderId, .name = entry.name}};
 
   indexManager->insert(indexEntry);
 
