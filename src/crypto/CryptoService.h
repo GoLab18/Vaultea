@@ -3,22 +3,25 @@
 #include "Constants.h"
 #include "storage/Constants.h"
 
-#include <cstdint>
 #include <string>
-#include <vector>
 
+using namespace vault::crypto;
 using namespace vault::storage;
 
 class CryptoService {
 public:
-  vault::crypto::Key deriveMasterKey(const std::string &password,
-                                     const vault::crypto::Salt &salt);
+  static vault::crypto::Key deriveMasterKey(const std::string &password,
+                                            const Salt &salt);
 
-  RawBytes encrypt(const RawBytes &data, const vault::crypto::Key &key,
-                   vault::crypto::Nonce &nonce);
+  static RawBytes encrypt(const RawBytes &data, const Key &key,
+                          const Nonce &nonce);
 
-  RawBytes decrypt(const RawBytes &cipher, const vault::crypto::Key &key,
-                   const vault::crypto::Nonce &nonce);
+  static RawBytes decrypt(const RawBytes &cipher, const Key &key,
+                          const Nonce &nonce);
 
-  vault::crypto::Salt generateSalt();
+  static Nonce generateNonce();
+
+  static Salt generateSalt();
+
+  static KeyCheck deriveKeyCheck(const Key &key);
 };

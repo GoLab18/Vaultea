@@ -3,8 +3,6 @@
 #include <sodium.h>
 #include <stdexcept>
 
-using namespace vault::crypto;
-
 Key CryptoService::deriveMasterKey(const std::string &password,
                                    const Salt &salt) {
 
@@ -23,10 +21,7 @@ Key CryptoService::deriveMasterKey(const std::string &password,
 }
 
 RawBytes CryptoService::encrypt(const RawBytes &data, const Key &key,
-                                Nonce &nonce) {
-
-  randombytes_buf(nonce.data(), nonce.size());
-
+                                const Nonce &nonce) {
   RawBytes cipher(data.size() + MAC_SIZE);
 
   unsigned long long cipherLen = 0;
@@ -40,17 +35,11 @@ RawBytes CryptoService::encrypt(const RawBytes &data, const Key &key,
   }
 
   cipher.resize(cipherLen);
-
   return cipher;
 }
 
 RawBytes CryptoService::decrypt(const RawBytes &cipher, const Key &key,
                                 const Nonce &nonce) {
-
-  if (cipher.size() < MAC_SIZE) {
-    throw std::runtime_error("Ciphertext too small");
-  }
-
   RawBytes plain(cipher.size());
 
   unsigned long long plainLen = 0;
@@ -60,19 +49,38 @@ RawBytes CryptoService::decrypt(const RawBytes &cipher, const Key &key,
       0, nonce.data(), key.data());
 
   if (result != 0) {
-    throw std::runtime_error(
-        "Decryption failed: corrupted data or wrong password");
+    throw std::runtime_error("Decryption failed");
   }
 
   plain.resize(plainLen);
-
   return plain;
 }
 
-Salt CryptoService::generateSalt() {
-  Salt salt{};
+Nonce CryptoService::generateNonce() {
+  Nonce nonce;
+  randombytes_buf(nonce.data(), nonce.size());
 
+  return nonce;
+}
+
+Salt CryptoService::generateSalt() {
+  Salt salt;
   randombytes_buf(salt.data(), salt.size());
 
   return salt;
+}
+
+KeyCheck CryptoService::deriveKeyCheck(const Key &key) {
+  KeyCheck out;
+
+  crypto_auth_hmacsha256_state state;
+  crypto_auth_hmacsha256_init(&state, key.data(), key.size());
+
+  crypto_auth_hmacsha256_update(
+      &state, reinterpret_cast<const unsigned char *>(KEY_CHECK_CONTEXT),
+      strlen(KEY_CHECK_CONTEXT));
+
+  crypto_auth_hmacsha256_final(&state, out.data());
+
+  return out;
 }
