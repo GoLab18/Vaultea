@@ -1,7 +1,6 @@
 #pragma once
 
 #include "BaseVaultObject.h"
-#include "EntryTypes.h"
 #include "storage/UUID.h"
 
 #include <string>
@@ -30,6 +29,8 @@ struct IdentityData {
 struct SecureNoteData {
   std::string content;
 };
+
+enum class EntryType { Login, Card, Identity, Note };
 
 using EntryData =
     std::variant<LoginData, CardData, IdentityData, SecureNoteData>;
