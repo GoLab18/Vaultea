@@ -67,8 +67,11 @@ qt_add_executable(${PROJECT_NAME}
     src/models/VaultEntry.h
 
     # PIPELINE
+    src/pipeline/Codec.h
     src/pipeline/Compression.cpp
     src/pipeline/Compression.h
+    src/pipeline/DefaultCodec.cpp
+    src/pipeline/DefaultCodec.h
     src/pipeline/Serialization.cpp
     src/pipeline/Serialization.h
 
