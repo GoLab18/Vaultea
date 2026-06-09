@@ -84,9 +84,8 @@ RawBytes SlottedPageHandler::read(Page &page, SlotId slotId) {
   return out;
 }
 
-std::optional<SlotId> SlottedPageHandler::update(Page &page, SlotId slotId,
-                                                 const uint8_t *data,
-                                                 uint16_t size) {
+UpdateResult SlottedPageHandler::update(Page &page, SlotId slotId,
+                                        const uint8_t *data, uint16_t size) {
   auto &layout = page.layout->as<SlottedLayout>();
 
   if (slotId >= layout.slots.size())
@@ -97,27 +96,31 @@ std::optional<SlotId> SlottedPageHandler::update(Page &page, SlotId slotId,
   if (s.state == SlotState::SlotDeleted)
     throw std::runtime_error("slot deleted");
 
-  // If fits -> overwrite in place
   if (size <= s.size) {
     std::memcpy(page.data.data() + s.offset, data, size);
     s.size = size;
-    return std::nullopt;
+
+    return UpdateResult::UpdatedInPlace;
   }
 
-  // If it's too large -> relocate
-  s.state = SlotState::SlotDeleted;
-  SlotId newSlot = insert(page, data, size);
-
-  return newSlot;
+  return UpdateResult::RequiresRelocation;
 }
 
-void SlottedPageHandler::remove(Page &page, SlotId slotId) {
+// Returns true if the page has been fully freed, otherwise false
+bool SlottedPageHandler::remove(Page &page, SlotId slotId) {
   auto &layout = page.layout->as<SlottedLayout>();
 
   if (slotId >= layout.slots.size())
     throw std::runtime_error("invalid slot");
 
   layout.slots[slotId].state = SlotState::SlotDeleted;
+
+  for (const auto &slot : layout.slots) {
+    if (slot.state == SlotState::SlotUsed)
+      return false;
+  }
+
+  return true;
 }
 
 // Sliding compaction

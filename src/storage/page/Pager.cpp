@@ -1,7 +1,9 @@
 #include "Pager.h"
+#include "Constants.h"
 #include "PageLayout.h"
 #include "pipeline/Serialization.h"
 
+#include <cstddef>
 #include <memory>
 #include <stdexcept>
 
@@ -13,26 +15,226 @@ Pager::Pager(StorageEngine &storage, uint32_t pageSize,
                     ? 0
                     : (storage.fileSize() - pageRegionOffset + pageSize - 1) /
                           pageSize),
-      pageSize(pageSize) {}
+      pageSize(pageSize), freelistRootPage(freelistRootPage) {}
 
-std::unordered_set<PageId> Pager::loadFreelist(PageId freelistRootPage) {
-  std::unordered_set<PageId> freePages;
+std::deque<PageId> Pager::loadFreelist(PageId root) {
+  std::deque<PageId> freePages;
 
-  PageId current = freelistRootPage;
+  PageId current = root;
 
   while (current != INVALID_PAGE) {
     Page &page = getPage(current);
 
     auto &layout = page.layout->as<FreelistLayout>();
 
-    freePages.reserve(freePages.size() + layout.freePages.size());
-    freePages.insert(layout.freePages.begin(), layout.freePages.end());
+    freePages.insert(freePages.end(), layout.freePages.begin(),
+                     layout.freePages.end());
 
-    unpin(current);
     current = layout.header.nextPage;
+
+    unpin(page.id);
   }
 
   return freePages;
+}
+
+void Pager::persistFreelist() {
+  const auto &freePages = allocator.getFreePages();
+
+  const bool wasAllocated = allocator.wasAllocatedSinceLastFlush();
+  const size_t newlyFreedCount = allocator.getNewlyFreeCount();
+
+  if (!wasAllocated && newlyFreedCount == 0) {
+    return;
+  }
+
+  const uint16_t maxPerPage = FreelistLayout::maxFreePages(pageSize);
+
+  auto flushAll = [&]() {
+    if (freePages.empty()) {
+      PageId current = freelistRootPage;
+
+      while (current != INVALID_PAGE) {
+        Page &page = getPage(current);
+
+        PageId next = page.layout->header.nextPage;
+
+        freePage(current);
+
+        current = next;
+      }
+
+      freelistRootPage = INVALID_PAGE;
+      return;
+    }
+
+    size_t freeIndex = 0;
+
+    PageId current = freelistRootPage;
+    PageId prev = INVALID_PAGE;
+
+    PageId firstPage = INVALID_PAGE;
+
+    // Reusing existing freelist pages
+
+    while (current != INVALID_PAGE) {
+      Page &page = getPage(current);
+
+      auto &layout = page.layout->as<FreelistLayout>();
+
+      PageId next = layout.header.nextPage;
+
+      layout.freePages.clear();
+
+      size_t count = 0;
+      while (count < maxPerPage && freeIndex < freePages.size()) {
+        layout.freePages.push_back(freePages[freeIndex]);
+
+        ++freeIndex;
+        ++count;
+      }
+
+      layout.header.prevPage = prev;
+      layout.header.nextPage = INVALID_PAGE;
+
+      page.dirty = true;
+
+      if (prev != INVALID_PAGE) {
+        Page &prevPage = getPage(prev);
+
+        prevPage.layout->header.nextPage = current;
+
+        prevPage.dirty = true;
+      }
+
+      if (firstPage == INVALID_PAGE) {
+        firstPage = current;
+      }
+
+      prev = current;
+
+      // No more free page ids left -> freelist pages reminder becomes obsolete
+
+      if (freeIndex >= freePages.size()) {
+        current = next;
+
+        while (current != INVALID_PAGE) {
+          Page &obsolete = getPage(current);
+
+          PageId nextObsolete = obsolete.layout->header.nextPage;
+
+          freePage(current);
+
+          current = nextObsolete;
+        }
+
+        break;
+      }
+
+      current = next;
+    }
+
+    // More freelist pages needed
+
+    while (freeIndex < freePages.size()) {
+      PageId pageId = allocatePage(PageType::Freelist);
+
+      Page &page = getPage(pageId);
+
+      auto &layout = page.layout->as<FreelistLayout>();
+
+      layout.freePages.clear();
+
+      size_t count = 0;
+      while (count < maxPerPage && freeIndex < freePages.size()) {
+        layout.freePages.push_back(freePages[freeIndex]);
+
+        freeIndex++;
+        count++;
+      }
+
+      layout.header.prevPage = prev;
+      layout.header.nextPage = INVALID_PAGE;
+
+      page.dirty = true;
+
+      if (prev != INVALID_PAGE) {
+        Page &prevPage = getPage(prev);
+
+        prevPage.layout->header.nextPage = pageId;
+
+        prevPage.dirty = true;
+      }
+
+      if (firstPage == INVALID_PAGE) {
+        firstPage = pageId;
+      }
+
+      prev = pageId;
+    }
+
+    freelistRootPage = firstPage;
+  };
+
+  auto flushAppendOnly = [&]() {
+    if (freelistRootPage == INVALID_PAGE) {
+      flushAll();
+      return;
+    }
+
+    PageId lastPageId = freelistRootPage;
+
+    while (true) {
+      Page &page = getPage(lastPageId);
+
+      if (page.layout->header.nextPage == INVALID_PAGE) {
+        break;
+      }
+
+      lastPageId = page.layout->header.nextPage;
+    }
+
+    PageId firstNewFree = freePages.size() - newlyFreedCount;
+
+    Page &lastPage = getPage(lastPageId);
+
+    auto *currentLayout = &lastPage.layout->as<FreelistLayout>();
+
+    for (size_t i = firstNewFree; i < freePages.size(); ++i) {
+      if (currentLayout->freePages.size() == maxPerPage) {
+        PageId newFreelistPage = allocatePage(PageType::Freelist);
+
+        Page &newPage = getPage(newFreelistPage);
+
+        auto &newLayout = newPage.layout->as<FreelistLayout>();
+
+        newLayout.freePages.clear();
+
+        newLayout.header.prevPage = lastPageId;
+        newLayout.header.nextPage = INVALID_PAGE;
+
+        newPage.dirty = true;
+
+        currentLayout->header.nextPage = newFreelistPage;
+
+        lastPage.dirty = true;
+
+        lastPageId = newFreelistPage;
+
+        currentLayout = &newLayout;
+      }
+
+      currentLayout->freePages.push_back(freePages[i]);
+    }
+  };
+
+  if (wasAllocated) {
+    flushAll();
+  } else {
+    flushAppendOnly();
+  }
+
+  allocator.clearState();
 }
 
 Page &Pager::getPage(PageId id) {
@@ -69,6 +271,18 @@ void Pager::unpin(PageId id) {
 
 PageId Pager::allocatePage(PageType type) {
   PageId id = allocator.allocate();
+
+  auto it = cache.find(id);
+
+  if (it != cache.end()) {
+    Page &page = it->second;
+
+    page = createPage(id, type);
+
+    touch(id);
+
+    return id;
+  }
 
   if (cache.size() >= MAX_PAGE_CACHE_SIZE) {
     evictOne();
@@ -121,8 +335,6 @@ void Pager::freePage(PageId id) {
 
   PageHeader header;
   header.pageId = id;
-  header.type = PageType::Free;
-  header.nextPage = INVALID_PAGE;
 
   page.layout = std::make_unique<FreeLayout>(header);
 
@@ -264,6 +476,8 @@ void Pager::writePageToDisk(Page &page) {
 }
 
 void Pager::flush() {
+  persistFreelist();
+
   for (auto &[id, page] : cache) {
     if (page.dirty) {
       writePageToDisk(page);
@@ -272,3 +486,5 @@ void Pager::flush() {
 
   storage.flush();
 }
+
+PageId Pager::getFreelistRootPage() const { return freelistRootPage; }

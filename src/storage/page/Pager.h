@@ -4,6 +4,7 @@
 #include "PageAllocator.h"
 #include "storage/StorageEngine.h"
 
+#include <deque>
 #include <list>
 #include <unordered_map>
 
@@ -14,7 +15,8 @@ public:
   Pager(StorageEngine &storage, uint32_t pageSize, uint64_t pageRegionOffset,
         PageId freelistRootPage);
 
-  std::unordered_set<PageId> loadFreelist(PageId freelistRootPage);
+  std::deque<PageId> loadFreelist(PageId freelistRootPage);
+  void persistFreelist();
 
   Page &getPage(PageId id);
 
@@ -27,11 +29,15 @@ public:
 
   void flush();
 
+  PageId getFreelistRootPage() const;
+
 private:
   StorageEngine &storage;
   PageAllocator allocator;
 
   uint32_t pageSize;
+
+  PageId freelistRootPage;
 
   std::unordered_map<PageId, Page> cache;
 
