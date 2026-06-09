@@ -357,9 +357,9 @@ RawBytes Serialization::serializeSlottedLayout(const SlottedLayout &layout) {
   write(out, layout.lower);
   write(out, layout.upper);
 
-  write(out, layout.slots.size());
+  write(out, layout.pageSlots.size());
 
-  for (const auto &s : layout.slots) {
+  for (const auto &s : layout.pageSlots) {
     write(out, s.offset);
     write(out, s.size);
     write(out, s.state);
@@ -380,14 +380,14 @@ SlottedLayout Serialization::deserializeSlottedLayout(const PageHeader &header,
   layout.upper = read<uint16_t>(data, offset);
 
   uint16_t slotCount = read<uint16_t>(data, offset);
-  layout.slots.reserve(slotCount);
+  layout.pageSlots.reserve(slotCount);
 
   for (uint16_t i = 0; i < slotCount; i++) {
     Slot s;
     s.offset = read<uint16_t>(data, offset);
     s.size = read<uint16_t>(data, offset);
     s.state = read<SlotState>(data, offset);
-    layout.slots.push_back(s);
+    layout.pageSlots.push_back(s);
   }
 
   return layout;

@@ -59,7 +59,7 @@ struct SlottedLayout : public PageLayoutBase {
   uint16_t lower = HEADER_SIZE;
   uint16_t upper = 0;
 
-  std::vector<Slot> slots;
+  std::vector<Slot> pageSlots;
 
   explicit SlottedLayout(PageHeader h, uint32_t pageSize)
       : PageLayoutBase(h), upper(pageSize) {}

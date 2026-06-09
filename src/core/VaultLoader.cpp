@@ -13,8 +13,8 @@ VaultLoader::loadIndex(Pager &pager, PageId rootPage, Codec &codec) {
 
     auto &layout = page.layout->as<SlottedLayout>();
 
-    for (SlotId slotIndex = 0; slotIndex < layout.slots.size(); ++slotIndex) {
-      const Slot &slot = layout.slots[slotIndex];
+    for (SlotId slotIndex = 0; slotIndex < layout.pageSlots.size(); ++slotIndex) {
+      const Slot &slot = layout.pageSlots[slotIndex];
 
       if (slot.state != SlotState::SlotUsed)
         continue;
