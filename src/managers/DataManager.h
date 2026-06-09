@@ -16,6 +16,4 @@ public:
   std::optional<RecordRef> update(const RecordRef &ref, const RawBytes &data);
 
   void remove(const RecordRef &ref);
-
-  PageId rootPage() const;
 };

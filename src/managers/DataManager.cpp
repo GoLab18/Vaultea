@@ -15,5 +15,3 @@ std::optional<RecordRef> DataManager::update(const RecordRef &ref,
 }
 
 void DataManager::remove(const RecordRef &ref) { deleteRecord(ref); }
-
-PageId DataManager::rootPage() const { return getRootPage(); }

@@ -17,6 +17,8 @@ class SlottedManager {
 public:
   explicit SlottedManager(Pager &pager, PageId rootPage, PageType pageType);
 
+  PageId getRootPage() const;
+
 protected:
   Pager &pager;
 
@@ -28,8 +30,6 @@ protected:
                                         const RawBytes &bytes);
 
   void deleteRecord(const RecordRef &ref);
-
-  PageId getRootPage() const;
 
 private:
   PageType pageType;
@@ -43,6 +43,7 @@ private:
 
   void loadFreeSpaceMap();
 
+  void freeEmptyPage(PageId id);
   void registerPage(PageId id, FreeSpace fs);
   void updatePageSpace(PageId id, FreeSpace newFs);
   void unregisterPage(PageId id);

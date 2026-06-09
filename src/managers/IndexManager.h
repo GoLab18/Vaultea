@@ -10,7 +10,8 @@
 
 class IndexManager : public SlottedManager {
 public:
-  explicit IndexManager(Pager &pager, PageId rootPage, std::vector<LoadedIndexEntry> loadedEntries);
+  explicit IndexManager(Pager &pager, PageId rootPage,
+                        std::vector<LoadedIndexEntry> loadedEntries);
 
   void insert(const IndexEntry &entry, const RawBytes &processedBytes);
   void update(const IndexEntry &entry, const RawBytes &processedBytes);
@@ -24,8 +25,6 @@ public:
   std::vector<IndexEntry> findFoldersByName(const std::string &query);
 
   std::vector<IndexEntry> scanAll();
-
-  PageId rootPage() const;
 
 private:
   std::unique_ptr<VaultIndex> index;

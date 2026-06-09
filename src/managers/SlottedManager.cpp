@@ -11,6 +11,8 @@ SlottedManager::SlottedManager(Pager &pager, PageId rootPage, PageType pageType)
   }
 }
 
+PageId SlottedManager::getRootPage() const { return rootPage; }
+
 PageId SlottedManager::allocatePage() {
   PageId id = pager.allocatePage(pageType);
 
@@ -35,21 +37,28 @@ PageId SlottedManager::findPageWithSpace(uint16_t size) {
     return it->second;
   }
 
-  PageId newPage = allocatePage();
+  PageId newPageId = allocatePage();
 
   if (tailPage != INVALID_PAGE) {
     Page &tail = pager.getPage(tailPage);
     pager.pin(tailPage);
 
-    tail.layout->header.nextPage = newPage;
+    tail.layout->header.nextPage = newPageId;
     tail.dirty = true;
 
+    Page &newPage = pager.getPage(newPageId);
+    pager.pin(newPageId);
+
+    newPage.layout->header.prevPage = tailPage;
+    newPage.dirty = true;
+
+    pager.unpin(newPageId);
     pager.unpin(tailPage);
   }
 
-  tailPage = newPage;
+  tailPage = newPageId;
 
-  return newPage;
+  return newPageId;
 }
 
 RecordRef SlottedManager::insertRecord(const RawBytes &bytes) {
@@ -91,20 +100,31 @@ std::optional<RecordRef> SlottedManager::updateRecord(const RecordRef &ref,
 
   auto &layout = page.layout->as<SlottedLayout>();
 
-  auto moved = SlottedPageHandler::update(page, ref.slotId, bytes.data(),
-                                          static_cast<uint16_t>(bytes.size()));
+  auto result = SlottedPageHandler::update(page, ref.slotId, bytes.data(),
+                                           static_cast<uint16_t>(bytes.size()));
 
-  FreeSpace after = layout.upper - layout.lower;
-  updatePageSpace(ref.pageId, after);
+  switch (result) {
+  case UpdateResult::UpdatedInPlace: {
+    FreeSpace after = layout.upper - layout.lower;
+    updatePageSpace(ref.pageId, after);
 
-  page.dirty = true;
+    page.dirty = true;
 
-  pager.unpin(ref.pageId);
+    pager.unpin(ref.pageId);
 
-  if (!moved)
     return std::nullopt;
+  }
 
-  return RecordRef{ref.pageId, *moved};
+  case UpdateResult::RequiresRelocation: {
+    pager.unpin(ref.pageId);
+
+    deleteRecord(ref);
+
+    RecordRef newRef = insertRecord(bytes);
+
+    return newRef;
+  }
+  }
 }
 
 void SlottedManager::deleteRecord(const RecordRef &ref) {
@@ -113,7 +133,13 @@ void SlottedManager::deleteRecord(const RecordRef &ref) {
 
   auto &layout = page.layout->as<SlottedLayout>();
 
-  SlottedPageHandler::remove(page, ref.slotId);
+  bool becameEmpty = SlottedPageHandler::remove(page, ref.slotId);
+  if (becameEmpty) {
+    pager.unpin(ref.pageId);
+
+    freeEmptyPage(ref.pageId);
+    return;
+  }
 
   FreeSpace after = layout.upper - layout.lower;
   updatePageSpace(ref.pageId, after);
@@ -122,8 +148,6 @@ void SlottedManager::deleteRecord(const RecordRef &ref) {
 
   pager.unpin(ref.pageId);
 }
-
-PageId SlottedManager::getRootPage() const { return rootPage; }
 
 void SlottedManager::loadFreeSpaceMap() {
   PageId current = rootPage;
@@ -146,6 +170,39 @@ void SlottedManager::loadFreeSpaceMap() {
   }
 
   tailPage = prev;
+}
+
+void SlottedManager::freeEmptyPage(PageId id) {
+  if (id == rootPage)
+    return;
+
+  Page &page = pager.getPage(id);
+
+  auto &header = page.layout->header;
+
+  PageId prev = header.prevPage;
+  PageId next = header.nextPage;
+
+  if (prev != INVALID_PAGE) {
+    Page &prevPage = pager.getPage(prev);
+
+    prevPage.layout->header.nextPage = next;
+    prevPage.dirty = true;
+  }
+
+  if (next != INVALID_PAGE) {
+    Page &nextPage = pager.getPage(next);
+
+    nextPage.layout->header.prevPage = prev;
+    nextPage.dirty = true;
+  }
+
+  if (tailPage == id)
+    tailPage = prev;
+
+  unregisterPage(id);
+
+  pager.freePage(id);
 }
 
 void SlottedManager::registerPage(PageId id, FreeSpace fs) {

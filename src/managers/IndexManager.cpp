@@ -67,5 +67,3 @@ IndexManager::findFoldersByName(const std::string &query) {
 }
 
 std::vector<IndexEntry> IndexManager::scanAll() { return index->all(); }
-
-PageId IndexManager::rootPage() const { return getRootPage(); }
