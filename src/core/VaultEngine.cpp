@@ -16,8 +16,17 @@ void VaultEngine::validateOpened() const {
     throw std::runtime_error("Vault not opened");
 }
 
+void VaultEngine::loadRootPages() {
+  header.dataRootPage = dataManager->getRootPage();
+  header.indexRootPage = indexManager->getRootPage();
+  header.freelistRootPage = pager->getFreelistRootPage();
+}
+
 void VaultEngine::commit() {
   pager->flush();
+
+  loadRootPages();
+
   persistHeader();
 }
 
@@ -78,12 +87,8 @@ void VaultEngine::initNewVault() {
 
   auto loadedIndexEntries =
       VaultLoader::loadIndex(*pager, header.indexRootPage, *codec);
-
   indexManager = std::make_unique<IndexManager>(*pager, header.indexRootPage,
                                                 loadedIndexEntries);
-
-  header.dataRootPage = dataManager->rootPage();
-  header.indexRootPage = indexManager->rootPage();
 
   commit();
 }
@@ -117,8 +122,7 @@ bool VaultEngine::openVault(const std::string &path,
   indexManager = std::make_unique<IndexManager>(*pager, header.indexRootPage,
                                                 loadedIndexEntries);
 
-  header.dataRootPage = dataManager->rootPage();
-  header.indexRootPage = indexManager->rootPage();
+  loadRootPages();
 
   opened = true;
   return true;
@@ -155,9 +159,6 @@ void VaultEngine::persistHeader() {
 void VaultEngine::closeVault() {
   if (!opened)
     return;
-
-  header.dataRootPage = dataManager->rootPage();
-  header.indexRootPage = indexManager->rootPage();
 
   commit();
 

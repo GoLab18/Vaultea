@@ -45,6 +45,8 @@ public:
 private:
   void validateOpened() const;
 
+  void loadRootPages();
+
   void commit();
 
   void persistPreamble();
