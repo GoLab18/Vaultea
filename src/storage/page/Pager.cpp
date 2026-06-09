@@ -30,7 +30,13 @@ std::deque<PageId> Pager::loadFreelist(PageId root) {
     freePages.insert(freePages.end(), layout.freePages.begin(),
                      layout.freePages.end());
 
-    current = layout.header.nextPage;
+    auto next = layout.header.nextPage;
+
+    if (next == INVALID_PAGE) {
+        freelistTailPage = current;
+    }
+
+    current = next;
 
     unpin(page.id);
   }
@@ -39,7 +45,7 @@ std::deque<PageId> Pager::loadFreelist(PageId root) {
 }
 
 void Pager::persistFreelist() {
-  const auto &freePages = allocator.getFreePages();
+  auto &freePages = allocator.getFreePages();
 
   const bool wasAllocated = allocator.wasAllocatedSinceLastFlush();
   const size_t newlyFreedCount = allocator.getNewlyFreeCount();
@@ -50,36 +56,38 @@ void Pager::persistFreelist() {
 
   const uint16_t maxPerPage = FreelistLayout::maxFreePages(pageSize);
 
+  PageId firstPage = INVALID_PAGE;
+  PageId prev = INVALID_PAGE;
+
   auto flushAll = [&]() {
     if (freePages.empty()) {
       PageId current = freelistRootPage;
 
       while (current != INVALID_PAGE) {
         Page &page = getPage(current);
-
         PageId next = page.layout->header.nextPage;
 
         freePage(current);
-
         current = next;
       }
 
       freelistRootPage = INVALID_PAGE;
+      freelistTailPage = INVALID_PAGE;
       return;
     }
 
     size_t freeIndex = 0;
 
     PageId current = freelistRootPage;
-    PageId prev = INVALID_PAGE;
+    prev = INVALID_PAGE;
+    firstPage = INVALID_PAGE;
 
-    PageId firstPage = INVALID_PAGE;
+    std::vector<PageId> obsoletePages;
 
     // Reusing existing freelist pages
 
     while (current != INVALID_PAGE) {
       Page &page = getPage(current);
-
       auto &layout = page.layout->as<FreelistLayout>();
 
       PageId next = layout.header.nextPage;
@@ -89,7 +97,6 @@ void Pager::persistFreelist() {
       size_t count = 0;
       while (count < maxPerPage && freeIndex < freePages.size()) {
         layout.freePages.push_back(freePages[freeIndex]);
-
         ++freeIndex;
         ++count;
       }
@@ -101,9 +108,7 @@ void Pager::persistFreelist() {
 
       if (prev != INVALID_PAGE) {
         Page &prevPage = getPage(prev);
-
         prevPage.layout->header.nextPage = current;
-
         prevPage.dirty = true;
       }
 
@@ -120,11 +125,9 @@ void Pager::persistFreelist() {
 
         while (current != INVALID_PAGE) {
           Page &obsolete = getPage(current);
-
           PageId nextObsolete = obsolete.layout->header.nextPage;
 
-          freePage(current);
-
+          obsoletePages.push_back(current);
           current = nextObsolete;
         }
 
@@ -138,11 +141,9 @@ void Pager::persistFreelist() {
 
     while (freeIndex < freePages.size()) {
       PageId pageId = allocatePage(PageType::Freelist);
-
       Page &page = getPage(pageId);
 
       auto &layout = page.layout->as<FreelistLayout>();
-
       layout.freePages.clear();
 
       size_t count = 0;
@@ -160,9 +161,7 @@ void Pager::persistFreelist() {
 
       if (prev != INVALID_PAGE) {
         Page &prevPage = getPage(prev);
-
         prevPage.layout->header.nextPage = pageId;
-
         prevPage.dirty = true;
       }
 
@@ -174,6 +173,14 @@ void Pager::persistFreelist() {
     }
 
     freelistRootPage = firstPage;
+    freelistTailPage = prev;
+    if (firstPage == INVALID_PAGE) {
+        freelistTailPage = INVALID_PAGE;
+    }
+
+    for (PageId id : obsoletePages) {
+      freePage(id);
+    }
   };
 
   auto flushAppendOnly = [&]() {
@@ -182,32 +189,23 @@ void Pager::persistFreelist() {
       return;
     }
 
-    PageId lastPageId = freelistRootPage;
-
-    while (true) {
-      Page &page = getPage(lastPageId);
-
-      if (page.layout->header.nextPage == INVALID_PAGE) {
-        break;
-      }
-
-      lastPageId = page.layout->header.nextPage;
+    PageId lastPageId = freelistTailPage;
+    if (lastPageId == INVALID_PAGE) {
+        flushAll();
+        return;
     }
 
-    PageId firstNewFree = freePages.size() - newlyFreedCount;
-
     Page &lastPage = getPage(lastPageId);
+    auto *layout = &lastPage.layout->as<FreelistLayout>();
 
-    auto *currentLayout = &lastPage.layout->as<FreelistLayout>();
+    size_t start = freePages.size() - newlyFreedCount;
 
-    for (size_t i = firstNewFree; i < freePages.size(); ++i) {
-      if (currentLayout->freePages.size() == maxPerPage) {
-        PageId newFreelistPage = allocatePage(PageType::Freelist);
-
-        Page &newPage = getPage(newFreelistPage);
+    for (size_t i = start; i < freePages.size(); ++i) {
+      if (layout->freePages.size() == maxPerPage) {
+        PageId newPageId = allocatePage(PageType::Freelist);
+        Page &newPage = getPage(newPageId);
 
         auto &newLayout = newPage.layout->as<FreelistLayout>();
-
         newLayout.freePages.clear();
 
         newLayout.header.prevPage = lastPageId;
@@ -215,16 +213,16 @@ void Pager::persistFreelist() {
 
         newPage.dirty = true;
 
-        currentLayout->header.nextPage = newFreelistPage;
-
+        lastPage.layout->header.nextPage = newPageId;
         lastPage.dirty = true;
 
-        lastPageId = newFreelistPage;
+        freelistTailPage = newPageId;
 
-        currentLayout = &newLayout;
+        lastPageId = newPageId;
+        layout = &newLayout;
       }
 
-      currentLayout->freePages.push_back(freePages[i]);
+      layout->freePages.push_back(freePages[i]);
     }
   };
 

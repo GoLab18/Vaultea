@@ -38,6 +38,7 @@ private:
   uint32_t pageSize;
 
   PageId freelistRootPage;
+  PageId freelistTailPage;
 
   std::unordered_map<PageId, Page> cache;
 
