@@ -8,7 +8,7 @@ namespace vault::storage::page {
 
 inline constexpr uint32_t DEFAULT_PAGE_SIZE = 4096;
 
-inline constexpr std::size_t HEADER_SIZE = 23;
+inline constexpr std::size_t HEADER_SIZE = 25;
 inline constexpr std::size_t SLOT_SIZE = 5;
 
 inline constexpr std::size_t MAX_PAGE_CACHE_SIZE = 8;

@@ -330,7 +330,9 @@ RawBytes Serialization::serializePageHeader(const PageHeader &h) {
 
   write(out, h.pageId);
   write(out, h.type);
+
   write(out, h.nextPage);
+  write(out, h.prevPage);
 
   return out;
 }
@@ -342,7 +344,9 @@ PageHeader Serialization::deserializePageHeader(const RawBytes &data) {
 
   h.pageId = read<PageId>(data, offset);
   h.type = read<PageType>(data, offset);
+
   h.nextPage = read<PageId>(data, offset);
+  h.prevPage = read<PageId>(data, offset);
 
   return h;
 }

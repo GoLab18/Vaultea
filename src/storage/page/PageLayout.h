@@ -13,15 +13,13 @@ enum class PageType : uint8_t { Free, Data, Freelist, Index };
 struct PageHeader {
   PageId pageId;
   PageType type;
+
   PageId nextPage;
-
-  // TODO don't we need the previous page also (?) -> linked-list like behavior
-  // for for example page freeing case
-
-  // PageId prevPage;
+  PageId prevPage;
 
   PageHeader()
-      : pageId(INVALID_PAGE), type(PageType::Free), nextPage(INVALID_PAGE) {}
+      : pageId(INVALID_PAGE), type(PageType::Free), nextPage(INVALID_PAGE),
+        prevPage(INVALID_PAGE) {}
 };
 
 class PageLayoutBase {
@@ -71,6 +69,15 @@ struct FreelistLayout : public PageLayoutBase {
   std::vector<PageId> freePages;
 
   explicit FreelistLayout(PageHeader h) : PageLayoutBase(h) {}
+
+  static uint16_t maxFreePages(uint32_t pageSize) {
+    constexpr uint32_t overhead = HEADER_SIZE + sizeof(uint16_t);
+
+    if (pageSize <= overhead)
+      throw std::runtime_error("page too small for freelist");
+
+    return static_cast<uint16_t>((pageSize - overhead) / sizeof(PageId));
+  }
 };
 
 struct FreeLayout : public PageLayoutBase {
