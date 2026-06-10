@@ -21,6 +21,8 @@ public:
   bool openVault(const std::string &path, const std::string &password);
   void closeVault();
 
+  bool isOpened() const;
+
   std::string addEntry(const VaultEntry &entry);
   bool updateEntry(const VaultEntry &entry);
   bool deleteEntry(const std::string &id);

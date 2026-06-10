@@ -16,6 +16,8 @@ void VaultEngine::validateOpened() const {
     throw std::runtime_error("Vault not opened");
 }
 
+bool VaultEngine::isOpened() const { return opened; }
+
 void VaultEngine::loadRootPages() {
   header.dataRootPage = dataManager->getRootPage();
   header.indexRootPage = indexManager->getRootPage();
