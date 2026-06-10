@@ -72,14 +72,15 @@ void VaultEngine::initNewVault() {
   header.createdAt = vault::util::time::now();
   header.updatedAt = header.createdAt;
 
-  persistPreamble();
-
   compressor = std::make_shared<LZ4Compressor>();
   codec = std::make_unique<DefaultCodec>(masterKey, compressor);
 
   RawBytes encodedHeader;
   processHeader(encodedHeader);
+
   preamble.headerSize = encodedHeader.size();
+
+  persistPreamble();
 
   pager = std::make_unique<Pager>(storage, preamble.pageSize,
                                   VAULT_PREAMBLE_SIZE + preamble.headerSize,
