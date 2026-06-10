@@ -82,3 +82,6 @@ CMakeLists.txt.user*
 
 # Generated documentation
 /docs/
+
+# Test vaults
+/test-vaults/
