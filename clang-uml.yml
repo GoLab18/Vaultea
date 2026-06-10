@@ -1,0 +1,39 @@
+compilation_database_dir: build
+output_directory: diagrams
+
+query_driver: /usr/bin/g++
+
+add_compile_flags:
+  - "-I/usr/include"
+  - "-I/usr/include/c++/15.2.1"
+  - "-I/usr/include/c++/15.2.1/x86_64-pc-linux-gnu"
+
+remove_compile_flags:
+  - "-mno-direct-extern-access"
+
+diagrams:
+  vaultea_class_diagram:
+    type: class
+
+    glob:
+      - src/**/*.cpp
+
+    exclude:
+      paths:
+        - src/ui
+
+      namespaces:
+        - std
+        - Qt
+        - absl
+
+    include:
+      access:
+        - public
+        - protected
+        - private
+
+    include_relations_also_as_members: false
+
+    generate_packages: true
+    package_type: directory
