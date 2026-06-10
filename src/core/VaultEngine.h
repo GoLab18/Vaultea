@@ -53,7 +53,6 @@ private:
 
   void persistPreamble();
 
-  void loadOrInitHeaderAndPreamble();
   void persistHeader();
   void processHeader(RawBytes &out) const;
   void unprocessHeader(const RawBytes &in);

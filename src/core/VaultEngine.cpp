@@ -103,19 +103,23 @@ bool VaultEngine::openVault(const std::string &path,
   if (!storage.open(path))
     return false;
 
-  loadOrInitHeaderAndPreamble();
+  auto preambleBytes = storage.read(0, VAULT_PREAMBLE_SIZE);
+  preamble = Serialization::deserializePreamble(preambleBytes);
 
   masterKey = CryptoService::deriveMasterKey(password, preamble.salt);
 
   if (!verifyPassword())
     return false;
 
+  compressor = std::make_shared<LZ4Compressor>();
+  codec = std::make_unique<DefaultCodec>(masterKey, compressor);
+
+  auto headerBytes = storage.read(VAULT_PREAMBLE_SIZE, preamble.headerSize);
+  unprocessHeader(headerBytes);
+
   pager = std::make_unique<Pager>(storage, preamble.pageSize,
                                   VAULT_PREAMBLE_SIZE + preamble.headerSize,
                                   header.freelistRootPage);
-
-  compressor = std::make_shared<LZ4Compressor>();
-  codec = std::make_unique<DefaultCodec>(masterKey, compressor);
 
   dataManager = std::make_unique<DataManager>(*pager, header.dataRootPage);
 
@@ -138,15 +142,6 @@ void VaultEngine::processHeader(RawBytes &out) const {
 void VaultEngine::unprocessHeader(const RawBytes &in) {
   auto plain = codec->decodeHeader(in);
   header = Serialization::deserializeHeader(plain);
-}
-
-void VaultEngine::loadOrInitHeaderAndPreamble() {
-  auto preambleBytes = storage.read(0, VAULT_PREAMBLE_SIZE);
-  preamble = Serialization::deserializePreamble(preambleBytes);
-
-  auto headerBytes = storage.read(VAULT_PREAMBLE_SIZE, preamble.headerSize);
-
-  unprocessHeader(headerBytes);
 }
 
 void VaultEngine::persistHeader() {
