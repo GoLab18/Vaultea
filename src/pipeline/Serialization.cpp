@@ -357,7 +357,8 @@ RawBytes Serialization::serializeSlottedLayout(const SlottedLayout &layout) {
   write(out, layout.lower);
   write(out, layout.upper);
 
-  write(out, layout.pageSlots.size());
+  uint16_t slotCount = static_cast<uint16_t>(layout.pageSlots.size());
+  write(out, slotCount);
 
   for (const auto &s : layout.pageSlots) {
     write(out, s.offset);
