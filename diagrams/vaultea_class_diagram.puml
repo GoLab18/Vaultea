@@ -1,0 +1,618 @@
+@startuml
+package [src] as C_0016921741234196091272 {
+package [crypto] as C_0000380446817111296928 {
+class "CryptoService" as C_0008845837993108291966
+class C_0008845837993108291966 {
+{static} +decrypt(const RawBytes & cipher, const Key & key, const Nonce & nonce) : RawBytes
+{static} +deriveKeyCheck(const Key & key) : KeyCheck
+{static} +deriveMasterKey(const std::string & password, const Salt & salt) : vault::crypto::Key
+{static} +encrypt(const RawBytes & data, const Key & key, const Nonce & nonce) : RawBytes
+{static} +generateNonce() : Nonce
+{static} +generateSalt() : Salt
+__
+}
+}
+package [storage] as C_0017999738198623292114 {
+package [page] as C_0009944219834657143375 {
+enum "UpdateResult" as C_0003695217879551100703
+enum C_0003695217879551100703 {
+UpdatedInPlace
+RequiresRelocation
+}
+class "SlottedPageHandler" as C_0012490055081056924292
+class C_0012490055081056924292 {
+{static} +compact(Page & page) : void
+{static} -findReusableSlot(const Page & page) : std::optional<SlotId>
+{static} -freeSpace(const Page & page) : uint16_t
+{static} -hasDeletedSlots(const Page & page) : bool
+{static} +insert(Page & page, const uint8_t * data, uint16_t size) : SlotId
+{static} +read(Page & page, SlotId slotId) : RawBytes
+{static} +remove(Page & page, SlotId slotId) : bool
+{static} +update(Page & page, SlotId slotId, const uint8_t * data, uint16_t size) : UpdateResult
+__
+}
+enum "PageType" as C_0014943905387292986906
+enum C_0014943905387292986906 {
+Free
+Data
+Freelist
+Index
+}
+class "PageHeader" as C_0010483153751503410718
+class C_0010483153751503410718 {
++PageHeader() : void
+__
++nextPage : PageId
++pageId : PageId
++prevPage : PageId
+}
+class "PageLayoutBase" as C_0014893776123264639907
+class C_0014893776123264639907 {
++PageLayoutBase(PageHeader h) : void
++~PageLayoutBase() = default : void
+..
++as<T>() : T &
++as<T>() const : const T &
+__
+}
+enum "LayoutType" as C_0007242614039121320850
+enum C_0007242614039121320850 {
+Slotted
+Freelist
+Free
+}
+enum "SlotState" as C_0015859760551692140441
+enum C_0015859760551692140441 {
+SlotUsed
+SlotDeleted
+}
+class "Slot" as C_0003723437144381557930
+class C_0003723437144381557930 {
+__
++offset : uint16_t
++size : uint16_t
+}
+class "SlottedLayout" as C_0011020995309761206568
+class C_0011020995309761206568 {
++SlottedLayout(PageHeader h, uint32_t pageSize) : void
+__
++lower : uint16_t
++upper : uint16_t
+}
+class "FreelistLayout" as C_0015877332038994553364
+class C_0015877332038994553364 {
++FreelistLayout(PageHeader h) : void
+..
+{static} +maxFreePages(uint32_t pageSize) : uint16_t
+__
++freePages : std::vector<PageId>
+}
+class "FreeLayout" as C_0018162377319719920742
+class C_0018162377319719920742 {
++FreeLayout(PageHeader h) : void
+__
+}
+class "Page" as C_0014494898798829083547
+class C_0014494898798829083547 {
+__
++data : vault::storage::RawBytes
++dirty : bool
++id : PageId
++pinCount : uint32_t
+}
+class "PageAllocator" as C_0003569428088915080683
+class C_0003569428088915080683 {
++PageAllocator(uint64_t pageSize, uint64_t pageRegionOffset, std::deque<PageId> freePages, PageId nextPageId) : void
+..
++allocate() : PageId
++clearState() : void
++free(PageId id) : void
++getFreePages() const : const std::deque<PageId> &
++getNewlyFreeCount() const : size_t
++pageOffset(PageId id) const : uint64_t
++wasAllocatedSinceLastFlush() const : bool
+__
+-allocatedDirty : bool
+-freePages : std::deque<PageId>
+-newlyFreedCount : size_t
+-nextPageId : PageId
+-pageRegionOffset : uint64_t
+-pageSize : uint64_t
+}
+class "Pager" as C_0012989434797082209119
+class C_0012989434797082209119 {
++Pager(StorageEngine & storage, uint32_t pageSize, uint64_t pageRegionOffset, PageId freelistRootPage) : void
+..
++allocatePage(PageType type) : PageId
+-createPage(PageId id, PageType type) : Page
+-evictOne() : void
++flush() : void
++freePage(PageId id) : void
++getFreelistRootPage() const : PageId
++getPage(PageId id) : Page &
++loadFreelist(PageId freelistRootPage) : std::deque<PageId>
+-loadPage(PageId id) : void
++persistFreelist() : void
++pin(PageId id) : void
+-touch(PageId id) : void
++unpin(PageId id) : void
+-writePageToDisk(Page & page) : void
+__
+-freelistRootPage : PageId
+-freelistTailPage : PageId
+-lru : std::list<PageId>
+-lruMap : std::unordered_map<PageId,std::list<PageId>::iterator>
+-pageSize : uint32_t
+}
+}
+class "StorageEngine" as C_0009851185014294306550
+class C_0009851185014294306550 {
++append(const uint8_t * data, uint64_t size) : uint64_t
++close() : void
++create(const std::string & path) : bool
++fileSize() : uint64_t
++flush() : void
++isOpen() const : bool
++open(const std::string & path) : bool
++read(uint64_t offset, uint64_t size) : vault::storage::RawBytes
++write(uint64_t offset, const uint8_t * data, uint64_t size) : void
+__
+-file : std::fstream
+}
+class "UUID" as C_0008848520782548181663
+class C_0008848520782548181663 {
++UUID() = default : void
++UUID(const std::array<uint8_t,UUID_SIZE> & b) : void
+..
++operator!=(const UUID & other) const noexcept : bool
++operator<(const UUID & other) const noexcept : bool
++operator==(const UUID & other) const noexcept : bool
+..
+{static} +fromRaw(const std::array<uint8_t,UUID_SIZE> & b) : UUID
+{static} +fromString(std::string_view str) : UUID
++hash() const noexcept : std::size_t
+{static} -hexToByte(char c) : uint8_t
+{static} +random() : UUID
++raw() const : const std::array<uint8_t,UUID_SIZE> &
++toString() const : std::string
+__
+-bytes : std::array<uint8_t,UUID_SIZE>
+}
+class "VaultHeader" as C_0013092652494519672748
+class C_0013092652494519672748 {
+__
++createdAt : vault::util::time::EpochTime
++dataRootPage : PageId
++entryCount : uint64_t
++folderCount : uint64_t
++freelistRootPage : PageId
++indexRootPage : PageId
++updatedAt : vault::util::time::EpochTime
+}
+class "VaultPreamble" as C_0005636064140004308197
+class C_0005636064140004308197 {
+__
++headerSize : uint32_t
++keyCheck : vault::crypto::KeyCheck
++magic : std::array<uint8_t,MAGIC_SIZE>
++pageSize : uint32_t
++salt : vault::crypto::Salt
++version : uint32_t
+}
+}
+package [models] as C_0013882882808158955989 {
+class "RecordRef" as C_0011277577170444748858
+class C_0011277577170444748858 {
+__
++pageId : PageId
++slotId : SlotId
+}
+enum "IndexObjectType" as C_0012046213630058486252
+enum C_0012046213630058486252 {
+Entry
+Folder
+}
+class "ItemIndexMeta" as C_0013346780669731543941
+class C_0013346780669731543941 {
+__
++name : std::string
+}
+class "FolderIndexMeta" as C_0010105921528759984260
+class C_0010105921528759984260 {
+__
++name : std::string
+}
+class "IndexEntry" as C_0002999865715810332645
+class C_0002999865715810332645 {
+__
+}
+class "LoadedIndexEntry" as C_0001694499894734752286
+class C_0001694499894734752286 {
+__
+}
+class "BaseVaultObject" as C_0005174997527737416992
+class C_0005174997527737416992 {
+__
++createdAt : vault::util::time::EpochTime
++updatedAt : vault::util::time::EpochTime
+}
+class "Folder" as C_0016021202552674792212
+class C_0016021202552674792212 {
+__
++name : std::string
+}
+enum "CompressionType" as C_0009537271480657714800
+enum C_0009537271480657714800 {
+None
+LZ4
+}
+class "ProcessedBlob" as C_0010166372319401673112
+class C_0010166372319401673112 {
+__
++ciphertext : vault::storage::RawBytes
++nonce : vault::crypto::Nonce
++originalSize : uint32_t
+}
+class "LoginData" as C_0011901738914636469950
+class C_0011901738914636469950 {
+__
++password : std::string
++urls : std::vector<std::string>
++username : std::string
+}
+class "CardData" as C_0016996842914746231794
+class C_0016996842914746231794 {
+__
++cvv : std::string
++expiry : std::string
++holder : std::string
++number : std::string
+}
+class "IdentityData" as C_0002065482498928100366
+class C_0002065482498928100366 {
+__
++email : std::string
++fullName : std::string
++phone : std::string
+}
+class "SecureNoteData" as C_0005946972753789235340
+class C_0005946972753789235340 {
+__
++content : std::string
+}
+enum "EntryType" as C_0007216647685006316423
+enum C_0007216647685006316423 {
+Login
+Card
+Identity
+Note
+}
+class "VaultEntry" as C_0016554880612228665255
+class C_0016554880612228665255 {
+__
++name : std::string
+}
+}
+package [pipeline] as C_0001573444941578368941 {
+class "DefaultCodec" as C_0014725570830778910946
+class C_0014725570830778910946 {
++DefaultCodec(Key masterKey, std::shared_ptr<ICompressor> compressor) : void
+..
++decodeData(const RawBytes & encoded) : RawBytes
++decodeHeader(const RawBytes & encoded) : RawBytes
++decodeIndex(const RawBytes & encoded) : RawBytes
++encodeData(const RawBytes & plain) : RawBytes
++encodeHeader(const RawBytes & plain) : RawBytes
++encodeIndex(const RawBytes & plain) : RawBytes
+__
+-masterKey : Key
+}
+class "LZ4Compressor" as C_0000665652156502733273
+class C_0000665652156502733273 {
++compress(const RawBytes & input) : CompressionResult
++decompress(CompressionType type, const RawBytes & input, uint32_t originalSize) : RawBytes
+__
+}
+abstract "Codec" as C_0009572729342156689120
+abstract C_0009572729342156689120 {
++~Codec() = default : void
+..
+{abstract} +decodeData(const RawBytes & enocded) = 0 : RawBytes
+{abstract} +decodeHeader(const RawBytes & encoded) = 0 : RawBytes
+{abstract} +decodeIndex(const RawBytes & enocded) = 0 : RawBytes
+{abstract} +encodeData(const RawBytes & plain) = 0 : RawBytes
+{abstract} +encodeHeader(const RawBytes & plain) = 0 : RawBytes
+{abstract} +encodeIndex(const RawBytes & plain) = 0 : RawBytes
+__
+}
+class "CompressionResult" as C_0006062051635473076650
+class C_0006062051635473076650 {
+__
++data : RawBytes
++originalSize : uint32_t
+}
+abstract "ICompressor" as C_0012051426686550971146
+abstract C_0012051426686550971146 {
++~ICompressor() = default : void
+..
+{abstract} +compress(const RawBytes & input) = 0 : CompressionResult
+{abstract} +decompress(CompressionType type, const RawBytes & input, uint32_t originalSize) = 0 : RawBytes
+__
+}
+class "Serialization" as C_0016815233383564239557
+class C_0016815233383564239557 {
+{static} +deserializeEntry(const RawBytes & data) : VaultEntry
+{static} +deserializeFolder(const RawBytes & data) : Folder
+{static} +deserializeFreeLayout(const PageHeader & header) : FreeLayout
+{static} +deserializeFreelistLayout(const PageHeader & header, const RawBytes & data) : FreelistLayout
+{static} +deserializeHeader(const RawBytes & data) : VaultHeader
+{static} +deserializeIndexEntry(const RawBytes & data) : IndexEntry
+{static} +deserializePageHeader(const RawBytes & data) : PageHeader
+{static} +deserializePreamble(const RawBytes & data) : VaultPreamble
+{static} +deserializeProcessedBlob(const RawBytes & data) : ProcessedBlob
+{static} +deserializeSlottedLayout(const PageHeader & header, uint32_t pageSize, const RawBytes & data) : SlottedLayout
+{static} -read<T>(const RawBytes & data, size_t & offset) : T
+{static} -readInto<T>(const RawBytes & data, size_t & offset, T & out) : void
+{static} +readString(const RawBytes & data, size_t & offset) : std::string
+{static} +readUUID(const RawBytes & data, size_t & offset) : UUID
+{static} +serializeEntry(const VaultEntry & entry) : RawBytes
+{static} +serializeFolder(const Folder & f) : RawBytes
+{static} +serializeFreeLayout(const FreeLayout &) : RawBytes
+{static} +serializeFreelistLayout(const FreelistLayout & layout) : RawBytes
+{static} +serializeHeader(const VaultHeader & h) : RawBytes
+{static} +serializeIndexEntry(const IndexEntry & e) : RawBytes
+{static} +serializePageHeader(const PageHeader & h) : RawBytes
+{static} +serializePreamble(const VaultPreamble & p) : RawBytes
+{static} +serializeProcessedBlob(const ProcessedBlob & blob) : RawBytes
+{static} +serializeSlottedLayout(const SlottedLayout & layout) : RawBytes
+{static} -write<T>(RawBytes & out, const T & value) : void
+{static} +writeString(RawBytes & out, const std::string & str) : void
+{static} +writeUUID(RawBytes & out, const UUID & id) : void
+__
+}
+}
+package [managers] as C_0010021955641857666039 {
+class "DataManager" as C_0002270041614704446065
+class C_0002270041614704446065 {
++DataManager(Pager & pager, PageId rootPage) : void
+..
++insert(const RawBytes & data) : RecordRef
++read(const RecordRef & ref) : RawBytes
++remove(const RecordRef & ref) : void
++update(const RecordRef & ref, const RawBytes & data) : std::optional<RecordRef>
+__
+}
+class "SlottedManager" as C_0013236529375898752181
+class C_0013236529375898752181 {
++SlottedManager(Pager & pager, PageId rootPage, PageType pageType) : void
+..
+-allocatePage() : PageId
+#deleteRecord(const RecordRef & ref) : void
+-findPageWithSpace(uint16_t size) : PageId
+-freeEmptyPage(PageId id) : void
++getRootPage() const : PageId
+#insertRecord(const RawBytes & bytes) : RecordRef
+-loadFreeSpaceMap() : void
+#readRecord(const RecordRef & ref) : RawBytes
+-registerPage(PageId id, FreeSpace fs) : void
+-unregisterPage(PageId id) : void
+-updatePageSpace(PageId id, FreeSpace newFs) : void
+#updateRecord(const RecordRef & ref, const RawBytes & bytes) : std::optional<RecordRef>
+__
+-freeSpaceMap : std::multimap<FreeSpace,PageId>
+-pagePositions : std::unordered_map<PageId,std::multimap<FreeSpace,PageId>::iterator>
+-rootPage : PageId
+-tailPage : PageId
+}
+class "IndexManager" as C_0011378337985882260636
+class C_0011378337985882260636 {
++IndexManager(Pager & pager, PageId rootPage, std::vector<LoadedIndexEntry> loadedEntries) : void
+..
+-allocateIndexPage() : PageId
+-erasePersistent(const UUID & id) : void
++findByFolder(const UUID & id) : std::vector<IndexEntry>
++findEntriesByName(const std::string & query) : std::vector<IndexEntry>
++findEntry(const UUID & id) : const IndexEntry *
++findFolder(const UUID & id) : const IndexEntry *
++findFoldersByName(const std::string & query) : std::vector<IndexEntry>
+-findIndexPageWithSpace(uint16_t size) : PageId
++insert(const IndexEntry & entry, const RawBytes & processedBytes) : void
+-persistEntry(const IndexEntry & entry) : void
++remove(const UUID & id) : void
++scanAll() : std::vector<IndexEntry>
++update(const IndexEntry & entry, const RawBytes & processedBytes) : void
+__
+}
+}
+package [index] as C_0004918265353678955698 {
+class "IIndex<UUID,IndexEntry,LoadedIndexEntry>" as C_0007049948528475797262
+class C_0007049948528475797262 {
+__
+}
+abstract "IIndex<Key,Entry,LoadedEntry>" as C_0005646180367050322832
+abstract C_0005646180367050322832 {
++~IIndex() = default : void
+..
+{abstract} +all() const = 0 : std::vector<Entry>
+{abstract} +find(const Key & id) const = 0 : const LoadedEntry *
+{abstract} +findByFolder(const Key & folderId) const = 0 : std::vector<Entry>
+{abstract} +findEntriesByName(const std::string & name) const = 0 : std::vector<Entry>
+{abstract} +findEntry(const Key & id) const = 0 : const Entry *
+{abstract} +findFolder(const Key & id) const = 0 : const Entry *
+{abstract} +findFoldersByName(const std::string & name) const = 0 : std::vector<Entry>
+{abstract} +insert(const LoadedEntry & loadedEntry) = 0 : void
+{abstract} +rebuild(const std::vector<LoadedEntry> & entries) = 0 : void
+{abstract} +remove(const Key & id) = 0 : void
+__
+}
+class "BTreeIndex" as C_0005322448663824144459
+class C_0005322448663824144459 {
++all() const : std::vector<IndexEntry>
++find(const UUID & id) const : const LoadedIndexEntry *
++findByFolder(const UUID & folderId) const : std::vector<IndexEntry>
++findEntriesByName(const std::string & name) const : std::vector<IndexEntry>
++findEntry(const UUID & id) const : const IndexEntry *
++findFolder(const UUID & id) const : const IndexEntry *
++findFoldersByName(const std::string & name) const : std::vector<IndexEntry>
++insert(const LoadedIndexEntry & loadedEntry) : void
++rebuild(const std::vector<LoadedIndexEntry> & entries) : void
++remove(const UUID & id) : void
+__
+}
+}
+package [core] as C_0012207904346887387097 {
+class "VaultLoader" as C_0002912439718226052961
+class C_0002912439718226052961 {
+{static} +loadIndex(Pager & pager, PageId rootPage, Codec & codec) : std::vector<LoadedIndexEntry>
+__
+}
+class "VaultEngine" as C_0013932144160997199841
+class C_0013932144160997199841 {
++addEntry(const VaultEntry & entry) : std::string
++addToFolder(const std::string & entryId, const std::string & folderId) : bool
++closeVault() : void
+-commit() : void
++createFolder(const std::string & name) : std::string
++createVault(const std::string & path, const std::string & password) : bool
++deleteEntry(const std::string & id) : bool
++deleteFolder(const std::string & id) : bool
++entryCount() const : uint64_t
++folderCount() const : uint64_t
++getAllEntries() : std::vector<VaultEntry>
++getByFolder(const std::string & folderId) : std::vector<VaultEntry>
++getEntry(const std::string & id) : std::optional<VaultEntry>
++getFolders() : std::vector<Folder>
+-initNewVault() : void
++isOpened() const : bool
+-loadOrInitHeaderAndPreamble() : void
+-loadRootPages() : void
++openVault(const std::string & path, const std::string & password) : bool
+-persistHeader() : void
+-persistPreamble() : void
+-processHeader(RawBytes & out) const : void
++renameFolder(const std::string & id, const std::string & newName) : bool
++searchEntries(const std::string & query) : std::vector<VaultEntry>
++searchFolders(const std::string & query) : std::vector<Folder>
+-unprocessHeader(const RawBytes & in) : void
++updateEntry(const VaultEntry & entry) : bool
+-validateOpened() const : void
+-verifyPassword() : bool
+__
+-masterKey : vault::crypto::Key
+-opened : bool
+-password : std::string
+-path : std::string
+}
+}
+}
+package [build] as C_0006291985976736594323 {
+package [_deps] as C_0011067964343984962534 {
+package [absl-src] as C_0016448777054622810639 {
+package [absl] as C_0008710576868015619454 {
+package [base] as C_0004461428486674255924 {
+class "AbslInternal_YouForgotToExplicitlyInitializeAField" as C_0013135151265807377508
+class C_0013135151265807377508 {
++operator type-parameter-0-0<T>() constexpr const : T
+__
+}
+}
+}
+}
+}
+}
+C_0012490055081056924292 ..> C_0014494898798829083547
+C_0012490055081056924292 ..> C_0003695217879551100703
+C_0010483153751503410718 o-- C_0014943905387292986906 : +type
+C_0014893776123264639907 o-- C_0010483153751503410718 : +header
+C_0003723437144381557930 o-- C_0015859760551692140441 : +state
+C_0011020995309761206568 ..> C_0010483153751503410718
+C_0011020995309761206568 o-- C_0003723437144381557930 : +pageSlots
+C_0014893776123264639907 <|-- C_0011020995309761206568
+C_0015877332038994553364 ..> C_0010483153751503410718
+C_0014893776123264639907 <|-- C_0015877332038994553364
+C_0018162377319719920742 ..> C_0010483153751503410718
+C_0014893776123264639907 <|-- C_0018162377319719920742
+C_0014494898798829083547 o-- C_0014893776123264639907 : +layout
+C_0012989434797082209119 ..> C_0014943905387292986906
+C_0012989434797082209119 --> C_0009851185014294306550 : -storage
+C_0012989434797082209119 o-- C_0003569428088915080683 : -allocator
+C_0012989434797082209119 o-- C_0014494898798829083547 : -cache
+C_0005636064140004308197 o-- C_0008848520782548181663 : +uuid
+C_0013346780669731543941 o-- C_0008848520782548181663 : +folderId
+C_0002999865715810332645 o-- C_0008848520782548181663 : +id
+C_0002999865715810332645 o-- C_0012046213630058486252 : +type
+C_0002999865715810332645 o-- C_0011277577170444748858 : +dataRef
+C_0002999865715810332645 o-- C_0013346780669731543941 : +payload
+C_0002999865715810332645 o-- C_0010105921528759984260 : +payload
+C_0001694499894734752286 o-- C_0002999865715810332645 : +entry
+C_0001694499894734752286 o-- C_0011277577170444748858 : +indexRef
+C_0005174997527737416992 o-- C_0008848520782548181663 : +id
+C_0005174997527737416992 <|-- C_0016021202552674792212
+C_0010166372319401673112 o-- C_0009537271480657714800 : +compressionType
+C_0016554880612228665255 o-- C_0008848520782548181663 : +folderId
+C_0016554880612228665255 o-- C_0007216647685006316423 : +type
+C_0016554880612228665255 o-- C_0011901738914636469950 : +data
+C_0016554880612228665255 o-- C_0016996842914746231794 : +data
+C_0016554880612228665255 o-- C_0002065482498928100366 : +data
+C_0016554880612228665255 o-- C_0005946972753789235340 : +data
+C_0005174997527737416992 <|-- C_0016554880612228665255
+C_0014725570830778910946 --> C_0012051426686550971146 : -compressor
+C_0009572729342156689120 <|-- C_0014725570830778910946
+C_0000665652156502733273 ..> C_0006062051635473076650
+C_0000665652156502733273 ..> C_0009537271480657714800
+C_0012051426686550971146 <|-- C_0000665652156502733273
+C_0006062051635473076650 o-- C_0009537271480657714800 : +type
+C_0012051426686550971146 ..> C_0006062051635473076650
+C_0012051426686550971146 ..> C_0009537271480657714800
+C_0016815233383564239557 ..> C_0016554880612228665255
+C_0016815233383564239557 ..> C_0016021202552674792212
+C_0016815233383564239557 ..> C_0002999865715810332645
+C_0016815233383564239557 ..> C_0005636064140004308197
+C_0016815233383564239557 ..> C_0013092652494519672748
+C_0016815233383564239557 ..> C_0010166372319401673112
+C_0016815233383564239557 ..> C_0010483153751503410718
+C_0016815233383564239557 ..> C_0011020995309761206568
+C_0016815233383564239557 ..> C_0015877332038994553364
+C_0016815233383564239557 ..> C_0018162377319719920742
+C_0016815233383564239557 ..> C_0008848520782548181663
+C_0002270041614704446065 ..> C_0012989434797082209119
+C_0002270041614704446065 ..> C_0011277577170444748858
+C_0013236529375898752181 <|-- C_0002270041614704446065
+C_0013236529375898752181 ..> C_0011277577170444748858
+C_0013236529375898752181 --> C_0012989434797082209119 : #pager
+C_0013236529375898752181 o-- C_0014943905387292986906 : -pageType
+C_0011378337985882260636 ..> C_0012989434797082209119
+C_0011378337985882260636 ..> C_0001694499894734752286
+C_0011378337985882260636 ..> C_0002999865715810332645
+C_0011378337985882260636 ..> C_0008848520782548181663
+C_0011378337985882260636 o-- C_0007049948528475797262 : -index
+C_0013236529375898752181 <|-- C_0011378337985882260636
+C_0007049948528475797262 ..> C_0008848520782548181663
+C_0007049948528475797262 ..> C_0002999865715810332645
+C_0007049948528475797262 ..> C_0001694499894734752286
+C_0007049948528475797262 ..|> C_0005646180367050322832
+C_0005322448663824144459 ..> C_0002999865715810332645
+C_0005322448663824144459 o-- C_0008848520782548181663 : -byId
+C_0005322448663824144459 o-- C_0001694499894734752286 : -byId
+C_0005322448663824144459 o-- C_0008848520782548181663 : -byFolder
+C_0005322448663824144459 o-- C_0008848520782548181663 : -byEntryName
+C_0005322448663824144459 o-- C_0008848520782548181663 : -byFolderName
+C_0007049948528475797262 <|-- C_0005322448663824144459
+C_0002912439718226052961 ..> C_0012989434797082209119
+C_0002912439718226052961 ..> C_0009572729342156689120
+C_0002912439718226052961 ..> C_0001694499894734752286
+C_0013932144160997199841 ..> C_0016554880612228665255
+C_0013932144160997199841 ..> C_0016021202552674792212
+C_0013932144160997199841 o-- C_0009851185014294306550 : -storage
+C_0013932144160997199841 o-- C_0012989434797082209119 : -pager
+C_0013932144160997199841 o-- C_0002270041614704446065 : -dataManager
+C_0013932144160997199841 o-- C_0011378337985882260636 : -indexManager
+C_0013932144160997199841 o-- C_0009572729342156689120 : -codec
+C_0013932144160997199841 --> C_0012051426686550971146 : -compressor
+C_0013932144160997199841 o-- C_0005636064140004308197 : -preamble
+C_0013932144160997199841 o-- C_0013092652494519672748 : -header
+C_0013135151265807377508 --> C_0013135151265807377508 : +v
+
+'Generated with clang-uml, version 0.6.2
+'LLVM version clang version 21.1.8
+@enduml
