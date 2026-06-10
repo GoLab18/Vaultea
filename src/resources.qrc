@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>assets/icons/lock.svg</file>
+        <file>assets/icons/eye.svg</file>
+        <file>assets/icons/eye-off.svg</file>
+        <file>assets/icons/folder.svg</file>
+        <file>assets/icons/vault.svg</file>
+    </qresource>
+</RCC>
