@@ -4,7 +4,7 @@ project(Vaultea LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Svg)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SODIUM REQUIRED libsodium)
@@ -38,17 +38,52 @@ FetchContent_MakeAvailable(lz4)
 
 qt_standard_project_setup()
 
+set(CMAKE_AUTORCC ON)
+
 qt_add_executable(${PROJECT_NAME}
     WIN32
     MACOSX_BUNDLE
 
-    # APP
-    src/app/main.cpp
+    # RESOURCES
+    src/resources.qrc
 
     # UI
-    src/ui/mainwindow.cpp
-    src/ui/mainwindow.h
-    src/ui/mainwindow.ui
+    src/ui/main.cpp
+
+    src/ui/controllers/vaultcontroller.cpp
+    src/ui/controllers/vaultcontroller.h
+
+    src/ui/pages/createvault/createvaultpage.cpp
+    src/ui/pages/createvault/createvaultpage.h
+
+    src/ui/pages/entryeditor/entryeditorpage.cpp
+    src/ui/pages/entryeditor/entryeditorpage.h
+    src/ui/pages/entryeditor/entryeditorpage.ui
+
+    src/ui/pages/folderview/folderviewpage.cpp
+    src/ui/pages/folderview/folderviewpage.h
+    src/ui/pages/folderview/folderviewpage.ui
+
+    src/ui/pages/openvault/openvaultpage.cpp
+    src/ui/pages/openvault/openvaultpage.h
+
+    src/ui/pages/vault/vaultpage.cpp
+    src/ui/pages/vault/vaultpage.h
+    src/ui/pages/vault/vaultpage.ui
+
+    src/ui/pages/welcome/welcomepage.cpp
+    src/ui/pages/welcome/welcomepage.h
+    src/ui/pages/welcome/welcomepage.ui
+
+    src/ui/theme/thememanager.cpp
+    src/ui/theme/thememanager.h
+
+    src/ui/widgets/passwordlineedit.cpp
+    src/ui/widgets/passwordlineedit.h
+
+    src/ui/windows/mainwindow.cpp
+    src/ui/windows/mainwindow.h
+    src/ui/windows/mainwindow.ui
 
     # CORE
     src/core/VaultEngine.cpp
@@ -115,7 +150,6 @@ qt_add_executable(${PROJECT_NAME}
 
     # UTIL
     src/util/Helpers.h
-    src/core/VaultLoader.h src/core/VaultLoader.cpp
 )
 
 
@@ -129,6 +163,7 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE
         Qt::Core
         Qt::Widgets
+        Qt::Svg
         ${SODIUM_LIBRARIES}
         absl::base
         absl::strings
