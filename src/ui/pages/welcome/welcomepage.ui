@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>WelcomePage</class>
+ <widget class="QWidget" name="WelcomePage">
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <item>
+    <spacer name="horizontalSpacerLeft">
+     <property name="orientation"><enum>Qt::Horizontal</enum></property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QWidget" name="formContainer" native="true">
+     <property name="maximumSize">
+      <size><width>450</width><height>16777215</height></size>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <property name="spacing"><number>15</number></property>
+      <item>
+       <spacer name="verticalSpacerTop">
+        <property name="orientation"><enum>Qt::Vertical</enum></property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="iconLabel">
+        <property name="text"><string>🔒</string></property>
+        <property name="alignment"><set>Qt::AlignCenter</set></property>
+        <property name="font"><font><pointsize>48</pointsize></font></property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="titleLabel">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:28pt;&quot;&gt;Welcome to &lt;/span&gt;&lt;span style=&quot; font-size:28pt; font-weight:700; color:#2a82da;&quot;&gt;Vaultea&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="subtitleLabel">
+        <property name="text"><string>Local, secure, and encrypted credential storage.</string></property>
+        <property name="alignment"><set>Qt::AlignCenter</set></property>
+        <property name="font"><font><pointsize>11</pointsize></font></property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="verticalSpacerMiddle">
+        <property name="orientation"><enum>Qt::Vertical</enum></property>
+        <property name="sizeHint"><size><width>20</width><height>30</height></size></property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="createBtn">
+        <property name="text"><string> Create New Vault</string></property>
+        <property name="minimumSize"><size><width>0</width><height>45</height></size></property>
+        <property name="font"><font><pointsize>11</pointsize><bold>true</bold></font></property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="openBtn">
+        <property name="text"><string> Open Existing Vault</string></property>
+        <property name="minimumSize"><size><width>0</width><height>45</height></size></property>
+        <property name="font"><font><pointsize>11</pointsize></font></property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="verticalSpacerBottom">
+        <property name="orientation"><enum>Qt::Vertical</enum></property>
+       </spacer>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <spacer name="horizontalSpacerRight">
+     <property name="orientation"><enum>Qt::Horizontal</enum></property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+</ui>
