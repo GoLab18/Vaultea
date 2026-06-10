@@ -41,7 +41,6 @@ void BTreeIndex::remove(const UUID &id) {
     const auto &meta = std::get<ItemIndexMeta>(loadedEntry.entry.payload);
 
     auto range = byFolder.equal_range(meta.folderId);
-
     for (auto i = range.first; i != range.second; ++i) {
       if (i->second == id) {
         byFolder.erase(i);
@@ -49,8 +48,7 @@ void BTreeIndex::remove(const UUID &id) {
       }
     }
 
-    auto nameRange = byEntryName.equal_range(meta.name);
-
+    auto nameRange = byEntryName.equal_range(vault::util::normalize(meta.name));
     for (auto i = nameRange.first; i != nameRange.second; ++i) {
       if (i->second == id) {
         byEntryName.erase(i);
@@ -64,8 +62,7 @@ void BTreeIndex::remove(const UUID &id) {
   case IndexObjectType::Folder: {
     const auto &meta = std::get<FolderIndexMeta>(loadedEntry.entry.payload);
 
-    auto range = byFolderName.equal_range(meta.name);
-
+    auto range = byFolderName.equal_range(vault::util::normalize(meta.name));
     for (auto i = range.first; i != range.second; ++i) {
       if (i->second == id) {
         byFolderName.erase(i);
