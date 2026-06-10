@@ -484,7 +484,6 @@ class C_0013932144160997199841 {
 +getFolders() : std::vector<Folder>
 -initNewVault() : void
 +isOpened() const : bool
--loadOrInitHeaderAndPreamble() : void
 -loadRootPages() : void
 +openVault(const std::string & path, const std::string & password) : bool
 -persistHeader() : void
