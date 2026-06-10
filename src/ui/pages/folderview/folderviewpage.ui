@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FolderViewPage</class>
+ <widget class="QWidget" name="FolderViewPage">
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="leftMargin"><number>20</number></property>
+   <property name="topMargin"><number>20</number></property>
+   <property name="rightMargin"><number>20</number></property>
+   <property name="bottomMargin"><number>20</number></property>
+   <item>
+    <layout class="QHBoxLayout" name="headerLayout">
+     <item><widget class="QPushButton" name="backButton"><property name="text"><string> Back</string></property></widget></item>
+     <item><widget class="QLabel" name="folderNameLabel"><property name="font"><font><pointsize>16</pointsize><bold>true</bold></font></property></widget></item>
+     <item><spacer><property name="orientation"><enum>Qt::Horizontal</enum></property></spacer></item>
+     <item><widget class="QPushButton" name="renameFolderButton"><property name="text"><string> Rename</string></property></widget></item>
+     <item><widget class="QPushButton" name="deleteFolderButton"><property name="text"><string> Delete Folder</string></property></widget></item>
+    </layout>
+   </item>
+   <item><widget class="QLabel" name="entryCountLabel"><property name="text"><string>Entries: 0</string></property></widget></item>
+   <item><widget class="QListWidget" name="entriesList"/></item>
+  </layout>
+ </widget>
+</ui>
