@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>EditFolderDialog</class>
+ <widget class="QDialog" name="EditFolderDialog">
+  <property name="windowTitle"><string>Edit Folder</string></property>
+  <property name="minimumWidth"><number>350</number></property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QFormLayout" name="formLayout">
+     <property name="horizontalSpacing"><number>10</number></property>
+     <property name="verticalSpacing"><number>15</number></property>
+     <item row="0" column="0"><widget class="QLabel"><property name="text"><string>Name:</string></property></widget></item>
+     <item row="0" column="1"><widget class="QLineEdit" name="nameEdit"/></item>
+     <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Description:</string></property></widget></item>
+     <item row="1" column="1"><widget class="QLineEdit" name="descEdit"><property name="placeholderText"><string>Optional</string></property></widget></item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="standardButtons"><set>QDialogButtonBox::Cancel|QDialogButtonBox::Save</set></property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+</ui>

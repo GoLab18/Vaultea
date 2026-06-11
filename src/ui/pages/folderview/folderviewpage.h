@@ -25,7 +25,7 @@ signals:
 
 private slots:
   void onDeleteFolderClicked();
-  void onRenameFolderClicked();
+  void onEditFolderClicked();
   void onEntryDoubleClicked(QListWidgetItem *item);
 
 private:
@@ -33,4 +33,5 @@ private:
   VaultController *m_controller;
   QString m_currentFolderId;
   QString m_currentFolderName;
+  QString m_currentFolderDesc;
 };
