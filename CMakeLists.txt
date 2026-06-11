@@ -60,6 +60,9 @@ qt_add_executable(${PROJECT_NAME}
     src/ui/pages/entryeditor/entryeditorpage.h
     src/ui/pages/entryeditor/entryeditorpage.ui
 
+    src/ui/pages/folderview/editfolderdialog.cpp
+    src/ui/pages/folderview/editfolderdialog.h
+    src/ui/pages/folderview/editfolderdialog.ui
     src/ui/pages/folderview/folderviewpage.cpp
     src/ui/pages/folderview/folderviewpage.h
     src/ui/pages/folderview/folderviewpage.ui
