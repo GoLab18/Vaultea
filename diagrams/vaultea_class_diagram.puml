@@ -239,6 +239,7 @@ __
 class "Folder" as C_0016021202552674792212
 class C_0016021202552674792212 {
 __
++description : std::string
 +name : std::string
 }
 enum "CompressionType" as C_0009537271480657714800
@@ -252,6 +253,21 @@ __
 +ciphertext : vault::storage::RawBytes
 +nonce : vault::crypto::Nonce
 +originalSize : uint32_t
+}
+enum "CardType" as C_0017409270863638952695
+enum C_0017409270863638952695 {
+Visa
+MasterCard
+Amex
+Discover
+Other
+}
+enum "Sex" as C_0000778697293577522432
+enum C_0000778697293577522432 {
+Male
+Female
+Other
+Unknown
 }
 class "LoginData" as C_0011901738914636469950
 class C_0011901738914636469950 {
@@ -271,9 +287,20 @@ __
 class "IdentityData" as C_0002065482498928100366
 class C_0002065482498928100366 {
 __
++city : std::string
++company : std::string
++country : std::string
 +email : std::string
-+fullName : std::string
++firstName : std::string
++lastName : std::string
++licenseNumber : std::string
++middleName : std::string
++passportNumber : std::string
 +phone : std::string
++ssn : std::string
++state : std::string
++username : std::string
++zip : std::string
 }
 class "SecureNoteData" as C_0005946972753789235340
 class C_0005946972753789235340 {
@@ -291,6 +318,7 @@ class "VaultEntry" as C_0016554880612228665255
 class C_0016554880612228665255 {
 __
 +name : std::string
++notes : std::string
 }
 }
 package [pipeline] as C_0001573444941578368941 {
@@ -481,6 +509,7 @@ class C_0013932144160997199841 {
 +getAllEntries() : std::vector<VaultEntry>
 +getByFolder(const std::string & folderId) : std::vector<VaultEntry>
 +getEntry(const std::string & id) : std::optional<VaultEntry>
++getFolder(const std::string & id) : std::optional<Folder>
 +getFolders() : std::vector<Folder>
 -initNewVault() : void
 +isOpened() const : bool
@@ -489,11 +518,11 @@ class C_0013932144160997199841 {
 -persistHeader() : void
 -persistPreamble() : void
 -processHeader(RawBytes & out) const : void
-+renameFolder(const std::string & id, const std::string & newName) : bool
 +searchEntries(const std::string & query) : std::vector<VaultEntry>
 +searchFolders(const std::string & query) : std::vector<Folder>
 -unprocessHeader(const RawBytes & in) : void
 +updateEntry(const VaultEntry & entry) : bool
++updateFolder(const Folder & folder) : bool
 -validateOpened() const : void
 -verifyPassword() : bool
 __
@@ -548,6 +577,8 @@ C_0001694499894734752286 o-- C_0011277577170444748858 : +indexRef
 C_0005174997527737416992 o-- C_0008848520782548181663 : +id
 C_0005174997527737416992 <|-- C_0016021202552674792212
 C_0010166372319401673112 o-- C_0009537271480657714800 : +compressionType
+C_0016996842914746231794 o-- C_0017409270863638952695 : +type
+C_0002065482498928100366 o-- C_0000778697293577522432 : +sex
 C_0016554880612228665255 o-- C_0008848520782548181663 : +folderId
 C_0016554880612228665255 o-- C_0007216647685006316423 : +type
 C_0016554880612228665255 o-- C_0011901738914636469950 : +data
