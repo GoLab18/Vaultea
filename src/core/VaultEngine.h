@@ -34,8 +34,10 @@ public:
   std::vector<VaultEntry> searchEntries(const std::string &query);
 
   std::string createFolder(const std::string &name);
-  bool renameFolder(const std::string &id, const std::string &newName);
+  bool updateFolder(const Folder &folder);
   bool deleteFolder(const std::string &id);
+  std::optional<Folder> getFolder(const std::string &id);
+
   std::vector<Folder> getFolders();
   std::vector<Folder> searchFolders(const std::string &query);
 

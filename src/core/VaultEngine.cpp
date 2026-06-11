@@ -349,36 +349,29 @@ std::string VaultEngine::createFolder(const std::string &name) {
   return folder.id.toString();
 }
 
-bool VaultEngine::renameFolder(const std::string &idStr,
-                               const std::string &newName) {
+bool VaultEngine::updateFolder(const Folder &folder) {
   validateOpened();
 
-  auto id = UUID::fromString(idStr);
-
-  auto *existing = indexManager->findFolder(id);
+  auto *existing = indexManager->findFolder(folder.id);
   if (!existing)
     return false;
 
-  auto encoded = dataManager->read(existing->dataRef);
-  auto plain = codec->decodeData(encoded);
+  Folder updatedFolder = folder;
+  updatedFolder.updatedAt = vault::util::time::now();
 
-  Folder folder = Serialization::deserializeFolder(plain);
-  folder.name = newName;
-  folder.updatedAt = vault::util::time::now();
-
-  auto newPlain = Serialization::serializeFolder(folder);
+  auto newPlain = Serialization::serializeFolder(updatedFolder);
   auto newEncoded = codec->encodeData(newPlain);
 
   auto moved = dataManager->update(existing->dataRef, newEncoded);
 
-  IndexEntry updated = *existing;
-  updated.dataRef = moved ? *moved : existing->dataRef;
-  updated.payload = FolderIndexMeta{.name = newName};
+  IndexEntry updatedIdx = *existing;
+  updatedIdx.dataRef = moved ? *moved : existing->dataRef;
+  updatedIdx.payload = FolderIndexMeta{.name = updatedFolder.name};
 
-  auto indexPlain = Serialization::serializeIndexEntry(updated);
+  auto indexPlain = Serialization::serializeIndexEntry(updatedIdx);
   auto indexEncoded = codec->encodeIndex(indexPlain);
 
-  indexManager->update(updated, indexEncoded);
+  indexManager->update(updatedIdx, indexEncoded);
 
   header.updatedAt = vault::util::time::now();
 
@@ -409,6 +402,21 @@ bool VaultEngine::deleteFolder(const std::string &idStr) {
   commit();
 
   return true;
+}
+
+std::optional<Folder> VaultEngine::getFolder(const std::string &idStr) {
+  validateOpened();
+
+  auto id = UUID::fromString(idStr);
+
+  auto *index = indexManager->findFolder(id);
+  if (!index)
+    return std::nullopt;
+
+  auto encoded = dataManager->read(index->dataRef);
+  auto plain = codec->decodeData(encoded);
+
+  return Serialization::deserializeFolder(plain);
 }
 
 std::vector<Folder> VaultEngine::getFolders() {
