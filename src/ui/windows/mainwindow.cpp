@@ -42,17 +42,26 @@ MainWindow::MainWindow() {
 
   connect(m_welcome, &WelcomePage::createRequested,
           [this]() { m_stack->setCurrentWidget(m_create); });
+
   connect(m_welcome, &WelcomePage::openRequested,
           [this]() { m_stack->setCurrentWidget(m_open); });
-  connect(m_create, &CreateVaultPage::backRequested,
-          [this]() { m_stack->setCurrentWidget(m_welcome); });
-  connect(m_open, &OpenVaultPage::backRequested,
-          [this]() { m_stack->setCurrentWidget(m_welcome); });
+
+  connect(m_create, &CreateVaultPage::backRequested, [this]() {
+    m_create->clearFields();
+    m_stack->setCurrentWidget(m_welcome);
+  });
+
+  connect(m_open, &OpenVaultPage::backRequested, [this]() {
+    m_open->clearFields();
+    m_stack->setCurrentWidget(m_welcome);
+  });
+
   connect(m_vault, &VaultPage::lockRequested, this, &MainWindow::handleLogout);
 
   connect(m_create, &CreateVaultPage::createRequested,
           [this](QString path, QString password) {
             if (m_controller->createVault(path, password)) {
+              m_create->clearFields();
               m_vault->refreshView();
               m_stack->setCurrentWidget(m_vault);
               m_logoutTimer->start();
@@ -64,6 +73,7 @@ MainWindow::MainWindow() {
   connect(m_open, &OpenVaultPage::openRequested,
           [this](QString path, QString password) {
             if (m_controller->openVault(path, password)) {
+              m_open->clearFields();
               m_vault->refreshView();
               m_stack->setCurrentWidget(m_vault);
               m_logoutTimer->start();
@@ -134,6 +144,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
       event->type() == QEvent::MouseButtonPress) {
     resetLogoutTimer();
   }
+
   return QMainWindow::eventFilter(obj, event);
 }
 
@@ -144,7 +155,9 @@ void MainWindow::resetLogoutTimer() {
 
 void MainWindow::handleLogout() {
   m_logoutTimer->stop();
+
   bool wasOpen = m_controller->isVaultOpen();
+
   m_controller->closeVault();
   m_stack->setCurrentWidget(m_welcome);
 
