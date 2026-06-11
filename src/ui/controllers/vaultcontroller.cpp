@@ -40,12 +40,24 @@ QVector<Folder> VaultController::searchFolders(const QString &query) {
   return QVector<Folder>(folders.begin(), folders.end());
 }
 
+QString VaultController::createFolder(const QString &name) {
+  return QString::fromStdString(m_engine->createFolder(name.toStdString()));
+}
+
+bool VaultController::updateFolder(const Folder &folder) {
+  return m_engine->updateFolder(folder);
+}
+
 bool VaultController::deleteFolderSafe(const QString &folderIdStr) {
   auto entries = m_engine->getByFolder(folderIdStr.toStdString());
   if (!entries.empty()) {
     return false;
   }
   return m_engine->deleteFolder(folderIdStr.toStdString());
+}
+
+std::optional<Folder> VaultController::getFolder(const QString &folderId) {
+  return m_engine->getFolder(folderId.toStdString());
 }
 
 QString VaultController::addEntry(const VaultEntry &entry) {
@@ -68,12 +80,4 @@ QVector<VaultEntry>
 VaultController::getEntriesByFolder(const QString &folderId) {
   auto entries = m_engine->getByFolder(folderId.toStdString());
   return QVector<VaultEntry>(entries.begin(), entries.end());
-}
-
-QString VaultController::createFolder(const QString &name) {
-  return QString::fromStdString(m_engine->createFolder(name.toStdString()));
-}
-
-bool VaultController::renameFolder(const QString &id, const QString &newName) {
-  return m_engine->renameFolder(id.toStdString(), newName.toStdString());
 }

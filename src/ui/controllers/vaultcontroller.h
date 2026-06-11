@@ -29,8 +29,9 @@ public:
   QVector<VaultEntry> getEntriesByFolder(const QString &folderId);
 
   QString createFolder(const QString &name);
-  bool renameFolder(const QString &id, const QString &newName);
+  bool updateFolder(const Folder &folder);
   bool deleteFolderSafe(const QString &folderIdStr);
+  std::optional<Folder> getFolder(const QString &folderId);
 
 private:
   std::unique_ptr<VaultEngine> m_engine;
