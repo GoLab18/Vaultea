@@ -1,8 +1,13 @@
 cmake_minimum_required(VERSION 3.19)
+
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "" FORCE)
+
 project(Vaultea LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Svg)
 
@@ -35,6 +40,19 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(lz4)
+
+# ZSTD
+set(ZSTD_BUILD_STATIC ON)
+set(ZSTD_BUILD_SHARED OFF)
+
+FetchContent_Declare(
+    zstd
+    URL "https://github.com/facebook/zstd/releases/download/v1.5.5/zstd-1.5.5.tar.gz"
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    SOURCE_SUBDIR build/cmake
+)
+
+FetchContent_MakeAvailable(zstd)
 
 qt_standard_project_setup()
 
@@ -131,6 +149,8 @@ qt_add_executable(${PROJECT_NAME}
     src/pipeline/LZ4Compressor.h
     src/pipeline/Serialization.cpp
     src/pipeline/Serialization.h
+    src/pipeline/ZstdCompressor.cpp
+    src/pipeline/ZstdCompressor.h
 
     # STORAGE
     src/storage/Constants.h
@@ -171,6 +191,7 @@ target_link_libraries(${PROJECT_NAME}
         absl::base
         absl::strings
         lz4
+        libzstd_static
 )
 
 install(TARGETS ${PROJECT_NAME}

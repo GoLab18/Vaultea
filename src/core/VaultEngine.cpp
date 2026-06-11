@@ -1,8 +1,8 @@
 #include "VaultEngine.h"
 #include "core/VaultLoader.h"
 #include "crypto/CryptoService.h"
+#include "models/ProcessedBlob.h"
 #include "pipeline/DefaultCodec.h"
-#include "pipeline/LZ4Compressor.h"
 #include "pipeline/Serialization.h"
 #include "storage/Constants.h"
 #include "util/Helpers.h"
@@ -72,8 +72,7 @@ void VaultEngine::initNewVault() {
   header.createdAt = vault::util::time::now();
   header.updatedAt = header.createdAt;
 
-  compressor = std::make_shared<LZ4Compressor>();
-  codec = std::make_unique<DefaultCodec>(masterKey, compressor);
+  codec = std::make_unique<DefaultCodec>(masterKey, CompressionType::LZ4);
 
   RawBytes encodedHeader;
   processHeader(encodedHeader);
@@ -112,8 +111,7 @@ bool VaultEngine::openVault(const std::string &path,
   if (!verifyPassword())
     return false;
 
-  compressor = std::make_shared<LZ4Compressor>();
-  codec = std::make_unique<DefaultCodec>(masterKey, compressor);
+  codec = std::make_unique<DefaultCodec>(masterKey, CompressionType::LZ4);
 
   auto headerBytes = storage.read(VAULT_PREAMBLE_SIZE, preamble.headerSize);
   unprocessHeader(headerBytes);

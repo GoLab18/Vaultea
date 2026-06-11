@@ -11,7 +11,7 @@ using namespace vault::storage;
 
 class DefaultCodec : public Codec {
 public:
-  DefaultCodec(Key masterKey, std::shared_ptr<ICompressor> compressor);
+  DefaultCodec(Key masterKey, CompressionType compType);
 
   RawBytes encodeData(const RawBytes &plain) override;
   RawBytes decodeData(const RawBytes &encoded) override;
@@ -24,5 +24,5 @@ public:
 
 private:
   Key masterKey;
-  std::shared_ptr<ICompressor> compressor;
+  std::unique_ptr<ICompressor> compressor;
 };

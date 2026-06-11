@@ -6,7 +6,6 @@
 #include "models/Folder.h"
 #include "models/VaultEntry.h"
 #include "pipeline/Codec.h"
-#include "pipeline/ICompressor.h"
 #include "storage/StorageEngine.h"
 #include "storage/VaultHeader.h"
 #include "storage/VaultPreamble.h"
@@ -77,7 +76,6 @@ private:
   std::unique_ptr<IndexManager> indexManager;
 
   std::unique_ptr<Codec> codec;
-  std::shared_ptr<ICompressor> compressor;
 
   VaultPreamble preamble;
   VaultHeader header;

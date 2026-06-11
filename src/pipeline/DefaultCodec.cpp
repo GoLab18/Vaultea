@@ -2,10 +2,29 @@
 #include "Serialization.h"
 #include "crypto/CryptoService.h"
 #include "models/ProcessedBlob.h"
+#include "pipeline/LZ4Compressor.h"
+#include "pipeline/ZstdCompressor.h"
 
-DefaultCodec::DefaultCodec(Key masterKey,
-                           std::shared_ptr<ICompressor> compressor)
-    : masterKey(masterKey), compressor(std::move(compressor)) {}
+#include <stdexcept>
+
+DefaultCodec::DefaultCodec(Key masterKey, CompressionType compType)
+    : masterKey(masterKey) {
+  switch (compType) {
+
+  case CompressionType::LZ4:
+    compressor = std::make_unique<LZ4Compressor>();
+    break;
+
+  case CompressionType::Zstd:
+    compressor = std::make_unique<ZstdCompressor>();
+    break;
+
+  case CompressionType::None:
+  default:
+    throw std::invalid_argument(
+        "A valid active compression type must be specified for the codec.");
+  }
+}
 
 RawBytes DefaultCodec::encodeData(const RawBytes &plain) {
   auto compressionResult = compressor->compress(plain);

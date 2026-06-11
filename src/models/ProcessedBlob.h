@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-enum class CompressionType : uint8_t { None, LZ4 };
+enum class CompressionType : uint8_t { None, LZ4, Zstd };
 
 struct ProcessedBlob {
   CompressionType compressionType;
