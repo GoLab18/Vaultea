@@ -1,15 +1,125 @@
 @startuml
 package [src] as C_0016921741234196091272 {
-package [crypto] as C_0000380446817111296928 {
-class "CryptoService" as C_0008845837993108291966
-class C_0008845837993108291966 {
-{static} +decrypt(const RawBytes & cipher, const Key & key, const Nonce & nonce) : RawBytes
-{static} +deriveKeyCheck(const Key & key) : KeyCheck
-{static} +deriveMasterKey(const std::string & password, const Salt & salt) : vault::crypto::Key
-{static} +encrypt(const RawBytes & data, const Key & key, const Nonce & nonce) : RawBytes
-{static} +generateNonce() : Nonce
-{static} +generateSalt() : Salt
+package [models] as C_0013882882808158955989 {
+class "BaseVaultObject" as C_0005174997527737416992
+class C_0005174997527737416992 {
 __
++createdAt : vault::util::time::EpochTime
++updatedAt : vault::util::time::EpochTime
+}
+class "Folder" as C_0016021202552674792212
+class C_0016021202552674792212 {
+__
++description : std::string
++name : std::string
+}
+class "RecordRef" as C_0011277577170444748858
+class C_0011277577170444748858 {
+__
++pageId : PageId
++slotId : SlotId
+}
+enum "IndexObjectType" as C_0012046213630058486252
+enum C_0012046213630058486252 {
+Entry
+Folder
+}
+class "ItemIndexMeta" as C_0013346780669731543941
+class C_0013346780669731543941 {
+__
++name : std::string
+}
+class "FolderIndexMeta" as C_0010105921528759984260
+class C_0010105921528759984260 {
+__
++name : std::string
+}
+class "IndexEntry" as C_0002999865715810332645
+class C_0002999865715810332645 {
+__
+}
+class "LoadedIndexEntry" as C_0001694499894734752286
+class C_0001694499894734752286 {
+__
+}
+enum "CompressionType" as C_0009537271480657714800
+enum C_0009537271480657714800 {
+None
+LZ4
+Zstd
+}
+class "ProcessedBlob" as C_0010166372319401673112
+class C_0010166372319401673112 {
+__
++ciphertext : vault::storage::RawBytes
++nonce : vault::crypto::Nonce
++originalSize : uint32_t
+}
+enum "CardType" as C_0017409270863638952695
+enum C_0017409270863638952695 {
+Visa
+MasterCard
+Amex
+Discover
+Other
+}
+enum "Sex" as C_0000778697293577522432
+enum C_0000778697293577522432 {
+Male
+Female
+Other
+Unknown
+}
+class "LoginData" as C_0011901738914636469950
+class C_0011901738914636469950 {
+__
++password : std::string
++urls : std::vector<std::string>
++username : std::string
+}
+class "CardData" as C_0016996842914746231794
+class C_0016996842914746231794 {
+__
++cvv : std::string
++expiry : std::string
++holder : std::string
++number : std::string
+}
+class "IdentityData" as C_0002065482498928100366
+class C_0002065482498928100366 {
+__
++city : std::string
++company : std::string
++country : std::string
++email : std::string
++firstName : std::string
++lastName : std::string
++licenseNumber : std::string
++middleName : std::string
++passportNumber : std::string
++phone : std::string
++ssn : std::string
++state : std::string
++username : std::string
++zip : std::string
+}
+class "SecureNoteData" as C_0005946972753789235340
+class C_0005946972753789235340 {
+__
++content : std::string
+}
+enum "EntryType" as C_0007216647685006316423
+enum C_0007216647685006316423 {
+Login
+Card
+Identity
+Note
+}
+class "VaultEntry" as C_0016554880612228665255
+class C_0016554880612228665255 {
+__
++name : std::string
++notes : std::string
 }
 }
 package [storage] as C_0017999738198623292114 {
@@ -145,39 +255,6 @@ __
 -pageSize : uint32_t
 }
 }
-class "StorageEngine" as C_0009851185014294306550
-class C_0009851185014294306550 {
-+append(const uint8_t * data, uint64_t size) : uint64_t
-+close() : void
-+create(const std::string & path) : bool
-+fileSize() : uint64_t
-+flush() : void
-+isOpen() const : bool
-+open(const std::string & path) : bool
-+read(uint64_t offset, uint64_t size) : vault::storage::RawBytes
-+write(uint64_t offset, const uint8_t * data, uint64_t size) : void
-__
--file : std::fstream
-}
-class "UUID" as C_0008848520782548181663
-class C_0008848520782548181663 {
-+UUID() = default : void
-+UUID(const std::array<uint8_t,UUID_SIZE> & b) : void
-..
-+operator!=(const UUID & other) const noexcept : bool
-+operator<(const UUID & other) const noexcept : bool
-+operator==(const UUID & other) const noexcept : bool
-..
-{static} +fromRaw(const std::array<uint8_t,UUID_SIZE> & b) : UUID
-{static} +fromString(std::string_view str) : UUID
-+hash() const noexcept : std::size_t
-{static} -hexToByte(char c) : uint8_t
-{static} +random() : UUID
-+raw() const : const std::array<uint8_t,UUID_SIZE> &
-+toString() const : std::string
-__
--bytes : std::array<uint8_t,UUID_SIZE>
-}
 class "VaultHeader" as C_0013092652494519672748
 class C_0013092652494519672748 {
 __
@@ -199,204 +276,38 @@ __
 +salt : vault::crypto::Salt
 +version : uint32_t
 }
-}
-package [models] as C_0013882882808158955989 {
-class "RecordRef" as C_0011277577170444748858
-class C_0011277577170444748858 {
-__
-+pageId : PageId
-+slotId : SlotId
-}
-enum "IndexObjectType" as C_0012046213630058486252
-enum C_0012046213630058486252 {
-Entry
-Folder
-}
-class "ItemIndexMeta" as C_0013346780669731543941
-class C_0013346780669731543941 {
-__
-+name : std::string
-}
-class "FolderIndexMeta" as C_0010105921528759984260
-class C_0010105921528759984260 {
-__
-+name : std::string
-}
-class "IndexEntry" as C_0002999865715810332645
-class C_0002999865715810332645 {
-__
-}
-class "LoadedIndexEntry" as C_0001694499894734752286
-class C_0001694499894734752286 {
-__
-}
-class "BaseVaultObject" as C_0005174997527737416992
-class C_0005174997527737416992 {
-__
-+createdAt : vault::util::time::EpochTime
-+updatedAt : vault::util::time::EpochTime
-}
-class "Folder" as C_0016021202552674792212
-class C_0016021202552674792212 {
-__
-+description : std::string
-+name : std::string
-}
-enum "CompressionType" as C_0009537271480657714800
-enum C_0009537271480657714800 {
-None
-LZ4
-}
-class "ProcessedBlob" as C_0010166372319401673112
-class C_0010166372319401673112 {
-__
-+ciphertext : vault::storage::RawBytes
-+nonce : vault::crypto::Nonce
-+originalSize : uint32_t
-}
-enum "CardType" as C_0017409270863638952695
-enum C_0017409270863638952695 {
-Visa
-MasterCard
-Amex
-Discover
-Other
-}
-enum "Sex" as C_0000778697293577522432
-enum C_0000778697293577522432 {
-Male
-Female
-Other
-Unknown
-}
-class "LoginData" as C_0011901738914636469950
-class C_0011901738914636469950 {
-__
-+password : std::string
-+urls : std::vector<std::string>
-+username : std::string
-}
-class "CardData" as C_0016996842914746231794
-class C_0016996842914746231794 {
-__
-+cvv : std::string
-+expiry : std::string
-+holder : std::string
-+number : std::string
-}
-class "IdentityData" as C_0002065482498928100366
-class C_0002065482498928100366 {
-__
-+city : std::string
-+company : std::string
-+country : std::string
-+email : std::string
-+firstName : std::string
-+lastName : std::string
-+licenseNumber : std::string
-+middleName : std::string
-+passportNumber : std::string
-+phone : std::string
-+ssn : std::string
-+state : std::string
-+username : std::string
-+zip : std::string
-}
-class "SecureNoteData" as C_0005946972753789235340
-class C_0005946972753789235340 {
-__
-+content : std::string
-}
-enum "EntryType" as C_0007216647685006316423
-enum C_0007216647685006316423 {
-Login
-Card
-Identity
-Note
-}
-class "VaultEntry" as C_0016554880612228665255
-class C_0016554880612228665255 {
-__
-+name : std::string
-+notes : std::string
-}
-}
-package [pipeline] as C_0001573444941578368941 {
-class "DefaultCodec" as C_0014725570830778910946
-class C_0014725570830778910946 {
-+DefaultCodec(Key masterKey, std::shared_ptr<ICompressor> compressor) : void
+class "UUID" as C_0008848520782548181663
+class C_0008848520782548181663 {
++UUID() = default : void
++UUID(const std::array<uint8_t,UUID_SIZE> & b) : void
 ..
-+decodeData(const RawBytes & encoded) : RawBytes
-+decodeHeader(const RawBytes & encoded) : RawBytes
-+decodeIndex(const RawBytes & encoded) : RawBytes
-+encodeData(const RawBytes & plain) : RawBytes
-+encodeHeader(const RawBytes & plain) : RawBytes
-+encodeIndex(const RawBytes & plain) : RawBytes
-__
--masterKey : Key
-}
-class "LZ4Compressor" as C_0000665652156502733273
-class C_0000665652156502733273 {
-+compress(const RawBytes & input) : CompressionResult
-+decompress(CompressionType type, const RawBytes & input, uint32_t originalSize) : RawBytes
-__
-}
-abstract "Codec" as C_0009572729342156689120
-abstract C_0009572729342156689120 {
-+~Codec() = default : void
++operator!=(const UUID & other) const noexcept : bool
++operator<(const UUID & other) const noexcept : bool
++operator==(const UUID & other) const noexcept : bool
 ..
-{abstract} +decodeData(const RawBytes & enocded) = 0 : RawBytes
-{abstract} +decodeHeader(const RawBytes & encoded) = 0 : RawBytes
-{abstract} +decodeIndex(const RawBytes & enocded) = 0 : RawBytes
-{abstract} +encodeData(const RawBytes & plain) = 0 : RawBytes
-{abstract} +encodeHeader(const RawBytes & plain) = 0 : RawBytes
-{abstract} +encodeIndex(const RawBytes & plain) = 0 : RawBytes
+{static} +fromRaw(const std::array<uint8_t,UUID_SIZE> & b) : UUID
+{static} +fromString(std::string_view str) : UUID
++hash() const noexcept : std::size_t
+{static} -hexToByte(char c) : uint8_t
+{static} +random() : UUID
++raw() const : const std::array<uint8_t,UUID_SIZE> &
++toString() const : std::string
 __
+-bytes : std::array<uint8_t,UUID_SIZE>
 }
-class "CompressionResult" as C_0006062051635473076650
-class C_0006062051635473076650 {
+class "StorageEngine" as C_0009851185014294306550
+class C_0009851185014294306550 {
++append(const uint8_t * data, uint64_t size) : uint64_t
++close() : void
++create(const std::string & path) : bool
++fileSize() : uint64_t
++flush() : void
++isOpen() const : bool
++open(const std::string & path) : bool
++read(uint64_t offset, uint64_t size) : vault::storage::RawBytes
++write(uint64_t offset, const uint8_t * data, uint64_t size) : void
 __
-+data : RawBytes
-+originalSize : uint32_t
-}
-abstract "ICompressor" as C_0012051426686550971146
-abstract C_0012051426686550971146 {
-+~ICompressor() = default : void
-..
-{abstract} +compress(const RawBytes & input) = 0 : CompressionResult
-{abstract} +decompress(CompressionType type, const RawBytes & input, uint32_t originalSize) = 0 : RawBytes
-__
-}
-class "Serialization" as C_0016815233383564239557
-class C_0016815233383564239557 {
-{static} +deserializeEntry(const RawBytes & data) : VaultEntry
-{static} +deserializeFolder(const RawBytes & data) : Folder
-{static} +deserializeFreeLayout(const PageHeader & header) : FreeLayout
-{static} +deserializeFreelistLayout(const PageHeader & header, const RawBytes & data) : FreelistLayout
-{static} +deserializeHeader(const RawBytes & data) : VaultHeader
-{static} +deserializeIndexEntry(const RawBytes & data) : IndexEntry
-{static} +deserializePageHeader(const RawBytes & data) : PageHeader
-{static} +deserializePreamble(const RawBytes & data) : VaultPreamble
-{static} +deserializeProcessedBlob(const RawBytes & data) : ProcessedBlob
-{static} +deserializeSlottedLayout(const PageHeader & header, uint32_t pageSize, const RawBytes & data) : SlottedLayout
-{static} -read<T>(const RawBytes & data, size_t & offset) : T
-{static} -readInto<T>(const RawBytes & data, size_t & offset, T & out) : void
-{static} +readString(const RawBytes & data, size_t & offset) : std::string
-{static} +readUUID(const RawBytes & data, size_t & offset) : UUID
-{static} +serializeEntry(const VaultEntry & entry) : RawBytes
-{static} +serializeFolder(const Folder & f) : RawBytes
-{static} +serializeFreeLayout(const FreeLayout &) : RawBytes
-{static} +serializeFreelistLayout(const FreelistLayout & layout) : RawBytes
-{static} +serializeHeader(const VaultHeader & h) : RawBytes
-{static} +serializeIndexEntry(const IndexEntry & e) : RawBytes
-{static} +serializePageHeader(const PageHeader & h) : RawBytes
-{static} +serializePreamble(const VaultPreamble & p) : RawBytes
-{static} +serializeProcessedBlob(const ProcessedBlob & blob) : RawBytes
-{static} +serializeSlottedLayout(const SlottedLayout & layout) : RawBytes
-{static} -write<T>(RawBytes & out, const T & value) : void
-{static} +writeString(RawBytes & out, const std::string & str) : void
-{static} +writeUUID(RawBytes & out, const UUID & id) : void
-__
+-file : std::fstream
 }
 }
 package [managers] as C_0010021955641857666039 {
@@ -488,12 +399,91 @@ class C_0005322448663824144459 {
 __
 }
 }
-package [core] as C_0012207904346887387097 {
-class "VaultLoader" as C_0002912439718226052961
-class C_0002912439718226052961 {
-{static} +loadIndex(Pager & pager, PageId rootPage, Codec & codec) : std::vector<LoadedIndexEntry>
+package [pipeline] as C_0001573444941578368941 {
+abstract "Codec" as C_0009572729342156689120
+abstract C_0009572729342156689120 {
++~Codec() = default : void
+..
+{abstract} +decodeData(const RawBytes & enocded) = 0 : RawBytes
+{abstract} +decodeHeader(const RawBytes & encoded) = 0 : RawBytes
+{abstract} +decodeIndex(const RawBytes & enocded) = 0 : RawBytes
+{abstract} +encodeData(const RawBytes & plain) = 0 : RawBytes
+{abstract} +encodeHeader(const RawBytes & plain) = 0 : RawBytes
+{abstract} +encodeIndex(const RawBytes & plain) = 0 : RawBytes
 __
 }
+class "CompressionResult" as C_0006062051635473076650
+class C_0006062051635473076650 {
+__
++data : RawBytes
++originalSize : uint32_t
+}
+abstract "ICompressor" as C_0012051426686550971146
+abstract C_0012051426686550971146 {
++~ICompressor() = default : void
+..
+{abstract} +compress(const RawBytes & input) = 0 : CompressionResult
+{abstract} +decompress(CompressionType type, const RawBytes & input, uint32_t originalSize) = 0 : RawBytes
+__
+}
+class "DefaultCodec" as C_0014725570830778910946
+class C_0014725570830778910946 {
++DefaultCodec(Key masterKey, CompressionType compType) : void
+..
++decodeData(const RawBytes & encoded) : RawBytes
++decodeHeader(const RawBytes & encoded) : RawBytes
++decodeIndex(const RawBytes & encoded) : RawBytes
++encodeData(const RawBytes & plain) : RawBytes
++encodeHeader(const RawBytes & plain) : RawBytes
++encodeIndex(const RawBytes & plain) : RawBytes
+__
+-masterKey : Key
+}
+class "LZ4Compressor" as C_0000665652156502733273
+class C_0000665652156502733273 {
++compress(const RawBytes & input) : CompressionResult
++decompress(CompressionType type, const RawBytes & input, uint32_t originalSize) : RawBytes
+__
+}
+class "ZstdCompressor" as C_0003003873664371498768
+class C_0003003873664371498768 {
++compress(const RawBytes & input) : CompressionResult
++decompress(CompressionType type, const RawBytes & input, uint32_t originalSize) : RawBytes
+__
+}
+class "Serialization" as C_0016815233383564239557
+class C_0016815233383564239557 {
+{static} +deserializeEntry(const RawBytes & data) : VaultEntry
+{static} +deserializeFolder(const RawBytes & data) : Folder
+{static} +deserializeFreeLayout(const PageHeader & header) : FreeLayout
+{static} +deserializeFreelistLayout(const PageHeader & header, const RawBytes & data) : FreelistLayout
+{static} +deserializeHeader(const RawBytes & data) : VaultHeader
+{static} +deserializeIndexEntry(const RawBytes & data) : IndexEntry
+{static} +deserializePageHeader(const RawBytes & data) : PageHeader
+{static} +deserializePreamble(const RawBytes & data) : VaultPreamble
+{static} +deserializeProcessedBlob(const RawBytes & data) : ProcessedBlob
+{static} +deserializeSlottedLayout(const PageHeader & header, uint32_t pageSize, const RawBytes & data) : SlottedLayout
+{static} -read<T>(const RawBytes & data, size_t & offset) : T
+{static} -readInto<T>(const RawBytes & data, size_t & offset, T & out) : void
+{static} +readString(const RawBytes & data, size_t & offset) : std::string
+{static} +readUUID(const RawBytes & data, size_t & offset) : UUID
+{static} +serializeEntry(const VaultEntry & entry) : RawBytes
+{static} +serializeFolder(const Folder & f) : RawBytes
+{static} +serializeFreeLayout(const FreeLayout &) : RawBytes
+{static} +serializeFreelistLayout(const FreelistLayout & layout) : RawBytes
+{static} +serializeHeader(const VaultHeader & h) : RawBytes
+{static} +serializeIndexEntry(const IndexEntry & e) : RawBytes
+{static} +serializePageHeader(const PageHeader & h) : RawBytes
+{static} +serializePreamble(const VaultPreamble & p) : RawBytes
+{static} +serializeProcessedBlob(const ProcessedBlob & blob) : RawBytes
+{static} +serializeSlottedLayout(const SlottedLayout & layout) : RawBytes
+{static} -write<T>(RawBytes & out, const T & value) : void
+{static} +writeString(RawBytes & out, const std::string & str) : void
+{static} +writeUUID(RawBytes & out, const UUID & id) : void
+__
+}
+}
+package [core] as C_0012207904346887387097 {
 class "VaultEngine" as C_0013932144160997199841
 class C_0013932144160997199841 {
 +addEntry(const VaultEntry & entry) : std::string
@@ -531,6 +521,23 @@ __
 -password : std::string
 -path : std::string
 }
+class "VaultLoader" as C_0002912439718226052961
+class C_0002912439718226052961 {
+{static} +loadIndex(Pager & pager, PageId rootPage, Codec & codec) : std::vector<LoadedIndexEntry>
+__
+}
+}
+package [crypto] as C_0000380446817111296928 {
+class "CryptoService" as C_0008845837993108291966
+class C_0008845837993108291966 {
+{static} +decrypt(const RawBytes & cipher, const Key & key, const Nonce & nonce) : RawBytes
+{static} +deriveKeyCheck(const Key & key) : KeyCheck
+{static} +deriveMasterKey(const std::string & password, const Salt & salt) : vault::crypto::Key
+{static} +encrypt(const RawBytes & data, const Key & key, const Nonce & nonce) : RawBytes
+{static} +generateNonce() : Nonce
+{static} +generateSalt() : Salt
+__
+}
 }
 }
 package [build] as C_0006291985976736594323 {
@@ -548,6 +555,26 @@ __
 }
 }
 }
+C_0005174997527737416992 o-- C_0008848520782548181663 : +id
+C_0005174997527737416992 <|-- C_0016021202552674792212
+C_0013346780669731543941 o-- C_0008848520782548181663 : +folderId
+C_0002999865715810332645 o-- C_0008848520782548181663 : +id
+C_0002999865715810332645 o-- C_0012046213630058486252 : +type
+C_0002999865715810332645 o-- C_0011277577170444748858 : +dataRef
+C_0002999865715810332645 o-- C_0013346780669731543941 : +payload
+C_0002999865715810332645 o-- C_0010105921528759984260 : +payload
+C_0001694499894734752286 o-- C_0002999865715810332645 : +entry
+C_0001694499894734752286 o-- C_0011277577170444748858 : +indexRef
+C_0010166372319401673112 o-- C_0009537271480657714800 : +compressionType
+C_0016996842914746231794 o-- C_0017409270863638952695 : +type
+C_0002065482498928100366 o-- C_0000778697293577522432 : +sex
+C_0016554880612228665255 o-- C_0008848520782548181663 : +folderId
+C_0016554880612228665255 o-- C_0007216647685006316423 : +type
+C_0016554880612228665255 o-- C_0011901738914636469950 : +data
+C_0016554880612228665255 o-- C_0016996842914746231794 : +data
+C_0016554880612228665255 o-- C_0002065482498928100366 : +data
+C_0016554880612228665255 o-- C_0005946972753789235340 : +data
+C_0005174997527737416992 <|-- C_0016554880612228665255
 C_0012490055081056924292 ..> C_0014494898798829083547
 C_0012490055081056924292 ..> C_0003695217879551100703
 C_0010483153751503410718 o-- C_0014943905387292986906 : +type
@@ -566,45 +593,6 @@ C_0012989434797082209119 --> C_0009851185014294306550 : -storage
 C_0012989434797082209119 o-- C_0003569428088915080683 : -allocator
 C_0012989434797082209119 o-- C_0014494898798829083547 : -cache
 C_0005636064140004308197 o-- C_0008848520782548181663 : +uuid
-C_0013346780669731543941 o-- C_0008848520782548181663 : +folderId
-C_0002999865715810332645 o-- C_0008848520782548181663 : +id
-C_0002999865715810332645 o-- C_0012046213630058486252 : +type
-C_0002999865715810332645 o-- C_0011277577170444748858 : +dataRef
-C_0002999865715810332645 o-- C_0013346780669731543941 : +payload
-C_0002999865715810332645 o-- C_0010105921528759984260 : +payload
-C_0001694499894734752286 o-- C_0002999865715810332645 : +entry
-C_0001694499894734752286 o-- C_0011277577170444748858 : +indexRef
-C_0005174997527737416992 o-- C_0008848520782548181663 : +id
-C_0005174997527737416992 <|-- C_0016021202552674792212
-C_0010166372319401673112 o-- C_0009537271480657714800 : +compressionType
-C_0016996842914746231794 o-- C_0017409270863638952695 : +type
-C_0002065482498928100366 o-- C_0000778697293577522432 : +sex
-C_0016554880612228665255 o-- C_0008848520782548181663 : +folderId
-C_0016554880612228665255 o-- C_0007216647685006316423 : +type
-C_0016554880612228665255 o-- C_0011901738914636469950 : +data
-C_0016554880612228665255 o-- C_0016996842914746231794 : +data
-C_0016554880612228665255 o-- C_0002065482498928100366 : +data
-C_0016554880612228665255 o-- C_0005946972753789235340 : +data
-C_0005174997527737416992 <|-- C_0016554880612228665255
-C_0014725570830778910946 --> C_0012051426686550971146 : -compressor
-C_0009572729342156689120 <|-- C_0014725570830778910946
-C_0000665652156502733273 ..> C_0006062051635473076650
-C_0000665652156502733273 ..> C_0009537271480657714800
-C_0012051426686550971146 <|-- C_0000665652156502733273
-C_0006062051635473076650 o-- C_0009537271480657714800 : +type
-C_0012051426686550971146 ..> C_0006062051635473076650
-C_0012051426686550971146 ..> C_0009537271480657714800
-C_0016815233383564239557 ..> C_0016554880612228665255
-C_0016815233383564239557 ..> C_0016021202552674792212
-C_0016815233383564239557 ..> C_0002999865715810332645
-C_0016815233383564239557 ..> C_0005636064140004308197
-C_0016815233383564239557 ..> C_0013092652494519672748
-C_0016815233383564239557 ..> C_0010166372319401673112
-C_0016815233383564239557 ..> C_0010483153751503410718
-C_0016815233383564239557 ..> C_0011020995309761206568
-C_0016815233383564239557 ..> C_0015877332038994553364
-C_0016815233383564239557 ..> C_0018162377319719920742
-C_0016815233383564239557 ..> C_0008848520782548181663
 C_0002270041614704446065 ..> C_0012989434797082209119
 C_0002270041614704446065 ..> C_0011277577170444748858
 C_0013236529375898752181 <|-- C_0002270041614704446065
@@ -628,9 +616,29 @@ C_0005322448663824144459 o-- C_0008848520782548181663 : -byFolder
 C_0005322448663824144459 o-- C_0008848520782548181663 : -byEntryName
 C_0005322448663824144459 o-- C_0008848520782548181663 : -byFolderName
 C_0007049948528475797262 <|-- C_0005322448663824144459
-C_0002912439718226052961 ..> C_0012989434797082209119
-C_0002912439718226052961 ..> C_0009572729342156689120
-C_0002912439718226052961 ..> C_0001694499894734752286
+C_0006062051635473076650 o-- C_0009537271480657714800 : +type
+C_0012051426686550971146 ..> C_0006062051635473076650
+C_0012051426686550971146 ..> C_0009537271480657714800
+C_0014725570830778910946 ..> C_0009537271480657714800
+C_0014725570830778910946 o-- C_0012051426686550971146 : -compressor
+C_0009572729342156689120 <|-- C_0014725570830778910946
+C_0000665652156502733273 ..> C_0006062051635473076650
+C_0000665652156502733273 ..> C_0009537271480657714800
+C_0012051426686550971146 <|-- C_0000665652156502733273
+C_0003003873664371498768 ..> C_0006062051635473076650
+C_0003003873664371498768 ..> C_0009537271480657714800
+C_0012051426686550971146 <|-- C_0003003873664371498768
+C_0016815233383564239557 ..> C_0016554880612228665255
+C_0016815233383564239557 ..> C_0016021202552674792212
+C_0016815233383564239557 ..> C_0002999865715810332645
+C_0016815233383564239557 ..> C_0005636064140004308197
+C_0016815233383564239557 ..> C_0013092652494519672748
+C_0016815233383564239557 ..> C_0010166372319401673112
+C_0016815233383564239557 ..> C_0010483153751503410718
+C_0016815233383564239557 ..> C_0011020995309761206568
+C_0016815233383564239557 ..> C_0015877332038994553364
+C_0016815233383564239557 ..> C_0018162377319719920742
+C_0016815233383564239557 ..> C_0008848520782548181663
 C_0013932144160997199841 ..> C_0016554880612228665255
 C_0013932144160997199841 ..> C_0016021202552674792212
 C_0013932144160997199841 o-- C_0009851185014294306550 : -storage
@@ -638,9 +646,11 @@ C_0013932144160997199841 o-- C_0012989434797082209119 : -pager
 C_0013932144160997199841 o-- C_0002270041614704446065 : -dataManager
 C_0013932144160997199841 o-- C_0011378337985882260636 : -indexManager
 C_0013932144160997199841 o-- C_0009572729342156689120 : -codec
-C_0013932144160997199841 --> C_0012051426686550971146 : -compressor
 C_0013932144160997199841 o-- C_0005636064140004308197 : -preamble
 C_0013932144160997199841 o-- C_0013092652494519672748 : -header
+C_0002912439718226052961 ..> C_0012989434797082209119
+C_0002912439718226052961 ..> C_0009572729342156689120
+C_0002912439718226052961 ..> C_0001694499894734752286
 C_0013135151265807377508 --> C_0013135151265807377508 : +v
 
 'Generated with clang-uml, version 0.6.2
