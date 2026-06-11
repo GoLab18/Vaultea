@@ -5,5 +5,13 @@
         <file>assets/icons/eye-off.svg</file>
         <file>assets/icons/folder.svg</file>
         <file>assets/icons/vault.svg</file>
+        <file>assets/icons/copy.svg</file>
+        <file>assets/icons/trash.svg</file>
+        <file>assets/icons/arrow-left.svg</file>
+        <file>assets/icons/pencil.svg</file>
+        <file>assets/icons/key-round.svg</file>
+        <file>assets/icons/credit-card.svg</file>
+        <file>assets/icons/id-card.svg</file>
+        <file>assets/icons/file-text.svg</file>
     </qresource>
 </RCC>
