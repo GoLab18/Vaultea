@@ -2,74 +2,236 @@
 <ui version="4.0">
  <class>EntryEditorPage</class>
  <widget class="QWidget" name="EntryEditorPage">
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QHBoxLayout" name="horizontalLayoutMain">
+   <item><spacer><property name="orientation"><enum>Qt::Horizontal</enum></property></spacer></item>
    <item>
-    <layout class="QFormLayout" name="formLayout">
-     <item row="0" column="0"><widget class="QLabel"><property name="text"><string>Name:</string></property></widget></item>
-     <item row="0" column="1"><widget class="QLineEdit" name="nameLineEdit"/></item>
-     <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Folder:</string></property></widget></item>
-     <item row="1" column="1"><widget class="QComboBox" name="folderComboBox"/></item>
-     <item row="2" column="0"><widget class="QLabel"><property name="text"><string>Type:</string></property></widget></item>
-     <item row="2" column="1">
-      <widget class="QComboBox" name="typeComboBox">
-       <item><property name="text"><string>Login</string></property></item>
-       <item><property name="text"><string>Card</string></property></item>
-       <item><property name="text"><string>Identity</string></property></item>
-       <item><property name="text"><string>Secure Note</string></property></item>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <widget class="QStackedWidget" name="typeStackedWidget">
-     <widget class="QWidget" name="pageLogin">
-      <layout class="QFormLayout">
-       <item row="0" column="0"><widget class="QLabel"><property name="text"><string>Username:</string></property></widget></item>
-       <item row="0" column="1"><widget class="QLineEdit" name="usernameEdit"/></item>
-       <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Password:</string></property></widget></item>
-       <item row="1" column="1"><widget class="QLineEdit" name="passwordEdit"><property name="echoMode"><enum>QLineEdit::Password</enum></property></widget></item>
-       <item row="2" column="0"><widget class="QLabel"><property name="text"><string>URLs (comma separated):</string></property></widget></item>
-       <item row="2" column="1"><widget class="QLineEdit" name="urlsEdit"/></item>
-      </layout>
-     </widget>
-     <widget class="QWidget" name="pageCard">
-      <layout class="QFormLayout">
-       <item row="0" column="0"><widget class="QLabel"><property name="text"><string>Holder:</string></property></widget></item>
-       <item row="0" column="1"><widget class="QLineEdit" name="cardHolderEdit"/></item>
-       <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Number:</string></property></widget></item>
-       <item row="1" column="1"><widget class="QLineEdit" name="cardNumberEdit"/></item>
-       <item row="2" column="0"><widget class="QLabel"><property name="text"><string>Expiry:</string></property></widget></item>
-       <item row="2" column="1"><widget class="QLineEdit" name="cardExpiryEdit"><property name="placeholderText"><string>MM/YY</string></property></widget></item>
-       <item row="3" column="0"><widget class="QLabel"><property name="text"><string>CVV:</string></property></widget></item>
-       <item row="3" column="1"><widget class="QLineEdit" name="cardCvvEdit"><property name="echoMode"><enum>QLineEdit::Password</enum></property><property name="maxLength"><number>4</number></property></widget></item>
-      </layout>
-     </widget>
-     <widget class="QWidget" name="pageIdentity">
-      <layout class="QFormLayout">
-       <item row="0" column="0"><widget class="QLabel"><property name="text"><string>Full Name:</string></property></widget></item>
-       <item row="0" column="1"><widget class="QLineEdit" name="fullNameEdit"/></item>
-       <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Email:</string></property></widget></item>
-       <item row="1" column="1"><widget class="QLineEdit" name="emailEdit"/></item>
-       <item row="2" column="0"><widget class="QLabel"><property name="text"><string>Phone:</string></property></widget></item>
-       <item row="2" column="1"><widget class="QLineEdit" name="phoneEdit"/></item>
-      </layout>
-     </widget>
-     <widget class="QWidget" name="pageNote">
-      <layout class="QVBoxLayout">
-       <item><widget class="QLabel"><property name="text"><string>Note Content:</string></property></widget></item>
-       <item><widget class="QTextEdit" name="noteContentEdit"/></item>
-      </layout>
-     </widget>
+    <widget class="QWidget" name="formContainer" native="true">
+     <property name="maximumSize"><size><width>600</width><height>16777215</height></size></property>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item><widget class="QLabel" name="timestampsLabel"><property name="alignment"><set>Qt::AlignCenter</set></property><property name="styleSheet"><string>color: gray;</string></property></widget></item>
+      
+      <item>
+       <layout class="QFormLayout" name="formLayoutBase">
+        <item row="0" column="0"><widget class="QLabel"><property name="text"><string>Name:</string></property></widget></item>
+        <item row="0" column="1"><widget class="QLineEdit" name="nameLineEdit"/></item>
+        <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Folder:</string></property></widget></item>
+        <item row="1" column="1"><widget class="QComboBox" name="folderComboBox"/></item>
+        <item row="2" column="0"><widget class="QLabel"><property name="text"><string>Type:</string></property></widget></item>
+        <item row="2" column="1">
+         <widget class="QComboBox" name="typeComboBox">
+          <item><property name="text"><string>Login</string></property></item>
+          <item><property name="text"><string>Card</string></property></item>
+          <item><property name="text"><string>Identity</string></property></item>
+          <item><property name="text"><string>Secure Note</string></property></item>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      
+      <item>
+       <widget class="QStackedWidget" name="typeStackedWidget">
+        
+        <widget class="QWidget" name="pageLogin">
+         <layout class="QFormLayout">
+          <item row="0" column="0"><widget class="QLabel"><property name="text"><string>Username:</string></property></widget></item>
+          <item row="0" column="1">
+           <layout class="QHBoxLayout">
+            <item><widget class="QLineEdit" name="usernameEdit"/></item>
+            <item><widget class="QToolButton" name="copyUserBtn"/></item>
+           </layout>
+          </item>
+          <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Password:</string></property></widget></item>
+          <item row="1" column="1">
+           <layout class="QHBoxLayout">
+            <item><widget class="PasswordLineEdit" name="passwordEdit"><property name="echoMode"><enum>QLineEdit::Password</enum></property></widget></item>
+            <item><widget class="QToolButton" name="copyPassBtn"/></item>
+           </layout>
+          </item>
+          <item row="2" column="0"><widget class="QLabel"><property name="text"><string>URLs:</string></property></widget></item>
+          <item row="2" column="1">
+           <widget class="QWidget" name="urlsContainer" native="true">
+            <layout class="QVBoxLayout" name="urlsLayout"><property name="margin"><number>0</number></property></layout>
+           </widget>
+          </item>
+          <item row="3" column="1"><widget class="QPushButton" name="addUrlBtn"><property name="text"><string>+ Add URL</string></property></widget></item>
+         </layout>
+        </widget>
+
+        <widget class="QWidget" name="pageCard">
+         <layout class="QFormLayout">
+          <item row="0" column="0"><widget class="QLabel"><property name="text"><string>Card Type:</string></property></widget></item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="cardTypeCombo">
+            <item><property name="text"><string>Visa</string></property></item>
+            <item><property name="text"><string>MasterCard</string></property></item>
+            <item><property name="text"><string>Amex</string></property></item>
+            <item><property name="text"><string>Discover</string></property></item>
+            <item><property name="text"><string>Other</string></property></item>
+           </widget>
+          </item>
+          <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Holder:</string></property></widget></item>
+          <item row="1" column="1"><widget class="QLineEdit" name="cardHolderEdit"/></item>
+          <item row="2" column="0"><widget class="QLabel"><property name="text"><string>Number:</string></property></widget></item>
+          <item row="2" column="1">
+           <layout class="QHBoxLayout">
+            <item><widget class="QLineEdit" name="cardNumberEdit"/></item>
+            <item><widget class="QToolButton" name="copyCardBtn"/></item>
+           </layout>
+          </item>
+          <item row="3" column="0"><widget class="QLabel"><property name="text"><string>Expiry:</string></property></widget></item>
+          <item row="3" column="1"><widget class="QLineEdit" name="cardExpiryEdit"><property name="placeholderText"><string>MM/YY</string></property></widget></item>
+          <item row="4" column="0"><widget class="QLabel"><property name="text"><string>CVV:</string></property></widget></item>
+          <item row="4" column="1"><widget class="PasswordLineEdit" name="cardCvvEdit"/></item>
+         </layout>
+        </widget>
+
+        <widget class="QWidget" name="pageIdentity">
+         <layout class="QVBoxLayout" name="identityVbox">
+          <property name="margin"><number>0</number></property>
+          
+          <item>
+           <layout class="QFormLayout">
+            <item row="0" column="0"><widget class="QLabel"><property name="text"><string>Sex:</string></property></widget></item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="sexCombo">
+              <item><property name="text"><string>Male</string></property></item><item><property name="text"><string>Female</string></property></item><item><property name="text"><string>Other</string></property></item><item><property name="text"><string>Unknown</string></property></item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+
+          <item>
+           <spacer name="spacerIdentity1">
+            <property name="orientation"><enum>Qt::Vertical</enum></property>
+            <property name="sizeType"><enum>QSizePolicy::Fixed</enum></property>
+            <property name="sizeHint"><size><width>20</width><height>15</height></size></property>
+           </spacer>
+          </item>
+
+          <item><widget class="QLabel"><property name="text"><string>&lt;b&gt;Personal Details&lt;/b&gt;</string></property></widget></item>
+          <item>
+           <layout class="QFormLayout">
+            <item row="0" column="0"><widget class="QLabel"><property name="text"><string>First Name:</string></property></widget></item>
+            <item row="0" column="1"><widget class="QLineEdit" name="firstNameEdit"/></item>
+            <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Middle Name:</string></property></widget></item>
+            <item row="1" column="1"><widget class="QLineEdit" name="middleNameEdit"/></item>
+            <item row="2" column="0"><widget class="QLabel"><property name="text"><string>Last Name:</string></property></widget></item>
+            <item row="2" column="1"><widget class="QLineEdit" name="lastNameEdit"/></item>
+            <item row="3" column="0"><widget class="QLabel"><property name="text"><string>Username:</string></property></widget></item>
+            <item row="3" column="1"><widget class="QLineEdit" name="idUsernameEdit"/></item>
+            <item row="4" column="0"><widget class="QLabel"><property name="text"><string>Company:</string></property></widget></item>
+            <item row="4" column="1"><widget class="QLineEdit" name="companyEdit"/></item>
+           </layout>
+          </item>
+
+          <item>
+           <spacer name="spacerIdentity2">
+            <property name="orientation"><enum>Qt::Vertical</enum></property>
+            <property name="sizeType"><enum>QSizePolicy::Fixed</enum></property>
+            <property name="sizeHint"><size><width>20</width><height>15</height></size></property>
+           </spacer>
+          </item>
+
+          <item><widget class="QLabel"><property name="text"><string>&lt;b&gt;Identification&lt;/b&gt;</string></property></widget></item>
+          <item>
+           <layout class="QFormLayout">
+            <item row="0" column="0"><widget class="QLabel"><property name="text"><string>SSN:</string></property></widget></item>
+            <item row="0" column="1"><widget class="PasswordLineEdit" name="ssnEdit"/></item>
+            <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Passport #:</string></property></widget></item>
+            <item row="1" column="1"><widget class="QLineEdit" name="passportEdit"/></item>
+            <item row="2" column="0"><widget class="QLabel"><property name="text"><string>License #:</string></property></widget></item>
+            <item row="2" column="1"><widget class="QLineEdit" name="licenseEdit"/></item>
+           </layout>
+          </item>
+
+          <item>
+           <spacer name="spacerIdentity3">
+            <property name="orientation"><enum>Qt::Vertical</enum></property>
+            <property name="sizeType"><enum>QSizePolicy::Fixed</enum></property>
+            <property name="sizeHint"><size><width>20</width><height>15</height></size></property>
+           </spacer>
+          </item>
+
+          <item><widget class="QLabel"><property name="text"><string>&lt;b&gt;Contact Info&lt;/b&gt;</string></property></widget></item>
+          <item>
+           <layout class="QFormLayout">
+            <item row="0" column="0"><widget class="QLabel"><property name="text"><string>Email:</string></property></widget></item>
+            <item row="0" column="1"><widget class="QLineEdit" name="emailEdit"/></item>
+            <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Phone:</string></property></widget></item>
+            <item row="1" column="1"><widget class="QLineEdit" name="phoneEdit"/></item>
+           </layout>
+          </item>
+
+          <item>
+           <spacer name="spacerIdentity4">
+            <property name="orientation"><enum>Qt::Vertical</enum></property>
+            <property name="sizeType"><enum>QSizePolicy::Fixed</enum></property>
+            <property name="sizeHint"><size><width>20</width><height>15</height></size></property>
+           </spacer>
+          </item>
+
+          <item><widget class="QLabel"><property name="text"><string>&lt;b&gt;Address&lt;/b&gt;</string></property></widget></item>
+          <item>
+           <layout class="QFormLayout">
+            <item row="0" column="0"><widget class="QLabel"><property name="text"><string>City:</string></property></widget></item>
+            <item row="0" column="1"><widget class="QLineEdit" name="cityEdit"/></item>
+            <item row="1" column="0"><widget class="QLabel"><property name="text"><string>State/Prov:</string></property></widget></item>
+            <item row="1" column="1"><widget class="QLineEdit" name="stateEdit"/></item>
+            <item row="2" column="0"><widget class="QLabel"><property name="text"><string>Zip Code:</string></property></widget></item>
+            <item row="2" column="1"><widget class="QLineEdit" name="zipEdit"/></item>
+            <item row="3" column="0"><widget class="QLabel"><property name="text"><string>Country:</string></property></widget></item>
+            <item row="3" column="1"><widget class="QLineEdit" name="countryEdit"/></item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+
+        <widget class="QWidget" name="pageNote">
+         <layout class="QVBoxLayout">
+          <property name="margin"><number>0</number></property>
+          <item><widget class="QTextEdit" name="secureNoteContent"><property name="placeholderText"><string>Enter secure note here...</string></property></widget></item>
+         </layout>
+        </widget>
+       </widget>
+      </item>
+      
+      <item>
+       <spacer name="spacerNotesSection">
+        <property name="orientation"><enum>Qt::Vertical</enum></property>
+        <property name="sizeType"><enum>QSizePolicy::Fixed</enum></property>
+        <property name="sizeHint"><size><width>20</width><height>20</height></size></property>
+       </spacer>
+      </item>
+
+      <item><widget class="QLabel"><property name="text"><string>Additional Notes:</string></property></widget></item>
+      <item><widget class="QTextEdit" name="notesEdit"><property name="maximumHeight"><number>80</number></property></widget></item>
+
+      <item>
+       <layout class="QHBoxLayout">
+        <item><widget class="QPushButton" name="deleteButton"><property name="text"><string>Delete Entry</string></property></widget></item>
+        <item><spacer><property name="orientation"><enum>Qt::Horizontal</enum></property></spacer></item>
+        <item><widget class="QPushButton" name="cancelButton"><property name="text"><string>Cancel</string></property></widget></item>
+        <item><widget class="QPushButton" name="saveButton"><property name="text"><string>Save</string></property></widget></item>
+       </layout>
+      </item>
+
+      <item>
+       <spacer name="verticalSpacerBottom">
+        <property name="orientation"><enum>Qt::Vertical</enum></property>
+       </spacer>
+      </item>
+
+     </layout>
     </widget>
    </item>
-   <item>
-    <layout class="QHBoxLayout">
-     <item><widget class="QPushButton" name="deleteButton"><property name="text"><string>Delete Entry</string></property></widget></item>
-     <item><spacer><property name="orientation"><enum>Qt::Horizontal</enum></property></spacer></item>
-     <item><widget class="QPushButton" name="cancelButton"><property name="text"><string>Cancel</string></property></widget></item>
-     <item><widget class="QPushButton" name="saveButton"><property name="text"><string>Save</string></property></widget></item>
-    </layout>
-   </item>
+   <item><spacer><property name="orientation"><enum>Qt::Horizontal</enum></property></spacer></item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>PasswordLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>ui/widgets/passwordlineedit.h</header>
+  </customwidget>
+ </customwidgets>
 </ui>
