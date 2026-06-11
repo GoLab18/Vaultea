@@ -16,12 +16,16 @@ diagrams:
     type: class
 
     glob:
-      - src/**/*.cpp
+      - src/core/**/*.cpp
+      - src/crypto/**/*.cpp
+      - src/index/**/*.cpp
+      - src/managers/**/*.cpp
+      - src/models/**/*.cpp
+      - src/pipeline/**/*.cpp
+      - src/storage/**/*.cpp
+      - src/util/**/*.cpp
 
     exclude:
-      paths:
-        - src/ui
-
       namespaces:
         - std
         - Qt
