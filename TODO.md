@@ -2,6 +2,8 @@
 
 - sync
 - password generator and check
+- settings context on vault creation
+- compression chosen dynamically based on the entry type, size etc.
 
 
 ---
