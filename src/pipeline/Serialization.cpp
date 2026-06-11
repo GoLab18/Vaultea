@@ -14,17 +14,19 @@ RawBytes Serialization::serializeEntry(const VaultEntry &e) {
   RawBytes out;
 
   writeUUID(out, e.id);
+
   writeString(out, e.name);
+  writeString(out, e.notes);
   writeUUID(out, e.folderId);
 
   write(out, e.createdAt);
   write(out, e.updatedAt);
-
   write(out, e.type);
 
   switch (e.type) {
   case EntryType::Login: {
     auto d = std::get<LoginData>(e.data);
+
     writeString(out, d.username);
     writeString(out, d.password);
 
@@ -34,27 +36,47 @@ RawBytes Serialization::serializeEntry(const VaultEntry &e) {
       writeString(out, u);
     break;
   }
-
   case EntryType::Card: {
     auto d = std::get<CardData>(e.data);
+
+    write(out, d.type);
+
     writeString(out, d.holder);
     writeString(out, d.number);
     writeString(out, d.expiry);
     writeString(out, d.cvv);
     break;
   }
-
   case EntryType::Identity: {
     auto d = std::get<IdentityData>(e.data);
-    writeString(out, d.fullName);
+
+    write(out, d.sex);
+
+    writeString(out, d.firstName);
+    writeString(out, d.middleName);
+    writeString(out, d.lastName);
+    writeString(out, d.username);
+    writeString(out, d.company);
+
+    writeString(out, d.ssn);
+    writeString(out, d.passportNumber);
+    writeString(out, d.licenseNumber);
+
     writeString(out, d.email);
     writeString(out, d.phone);
+
+    writeString(out, d.city);
+    writeString(out, d.state);
+    writeString(out, d.zip);
+    writeString(out, d.country);
+
     break;
   }
-
   case EntryType::Note: {
     auto d = std::get<SecureNoteData>(e.data);
+
     writeString(out, d.content);
+
     break;
   }
   }
@@ -67,7 +89,9 @@ VaultEntry Serialization::deserializeEntry(const RawBytes &data) {
   size_t offset = 0;
 
   e.id = readUUID(data, offset);
+
   e.name = readString(data, offset);
+  e.notes = readString(data, offset);
   e.folderId = readUUID(data, offset);
 
   e.createdAt = read<EpochTime>(data, offset);
@@ -89,11 +113,12 @@ VaultEntry Serialization::deserializeEntry(const RawBytes &data) {
       d.urls.push_back(readString(data, offset));
 
     e.data = d;
+
     break;
   }
-
   case EntryType::Card: {
     CardData d;
+    d.type = read<CardType>(data, offset);
 
     d.holder = readString(data, offset);
     d.number = readString(data, offset);
@@ -101,26 +126,43 @@ VaultEntry Serialization::deserializeEntry(const RawBytes &data) {
     d.cvv = readString(data, offset);
 
     e.data = d;
+
     break;
   }
-
   case EntryType::Identity: {
     IdentityData d;
 
-    d.fullName = readString(data, offset);
+    d.sex = read<Sex>(data, offset);
+
+    d.firstName = readString(data, offset);
+    d.middleName = readString(data, offset);
+    d.lastName = readString(data, offset);
+    d.username = readString(data, offset);
+    d.company = readString(data, offset);
+
+    d.ssn = readString(data, offset);
+    d.passportNumber = readString(data, offset);
+    d.licenseNumber = readString(data, offset);
+
     d.email = readString(data, offset);
     d.phone = readString(data, offset);
 
+    d.city = readString(data, offset);
+    d.state = readString(data, offset);
+    d.zip = readString(data, offset);
+    d.country = readString(data, offset);
+
     e.data = d;
+
     break;
   }
-
   case EntryType::Note: {
     SecureNoteData d;
 
     d.content = readString(data, offset);
 
     e.data = d;
+
     break;
   }
   }
@@ -133,6 +175,7 @@ RawBytes Serialization::serializeFolder(const Folder &f) {
 
   writeUUID(out, f.id);
   writeString(out, f.name);
+  writeString(out, f.description);
 
   write(out, f.createdAt);
   write(out, f.updatedAt);
@@ -146,13 +189,13 @@ Folder Serialization::deserializeFolder(const RawBytes &data) {
 
   f.id = readUUID(data, offset);
   f.name = readString(data, offset);
+  f.description = readString(data, offset);
 
   f.createdAt = read<EpochTime>(data, offset);
   f.updatedAt = read<EpochTime>(data, offset);
 
   return f;
 }
-
 RawBytes Serialization::serializeIndexEntry(const IndexEntry &e) {
   RawBytes out;
 
