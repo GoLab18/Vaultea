@@ -12,6 +12,8 @@ class CreateVaultPage : public QWidget {
 public:
   explicit CreateVaultPage(QWidget *parent = nullptr);
 
+  void clearFields();
+
 signals:
   void createRequested(QString path, QString password);
   void backRequested();

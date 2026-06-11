@@ -11,6 +11,8 @@ class OpenVaultPage : public QWidget {
 public:
   explicit OpenVaultPage(QWidget *parent = nullptr);
 
+  void clearFields();
+
 signals:
   void openRequested(QString path, QString password);
   void backRequested();

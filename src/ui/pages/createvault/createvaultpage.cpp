@@ -73,6 +73,7 @@ CreateVaultPage::CreateVaultPage(QWidget *parent) : QWidget(parent) {
                            "Please select a directory and filename.");
       return;
     }
+
     if (m_password->text().isEmpty() ||
         m_password->text() != m_confirm->text()) {
       QMessageBox::warning(this, "Error",
@@ -84,6 +85,20 @@ CreateVaultPage::CreateVaultPage(QWidget *parent) : QWidget(parent) {
     if (!fullPath.endsWith(".vtea"))
       fullPath += ".vtea";
 
+    if (QFileInfo::exists(fullPath)) {
+      QMessageBox::warning(this, "Error",
+                           "A file already exists at this location. Please "
+                           "choose a different name.");
+      return;
+    }
+
     emit createRequested(fullPath, m_password->text());
   });
+}
+
+void CreateVaultPage::clearFields() {
+  m_dirPath->clear();
+  m_fileName->clear();
+  m_password->clear();
+  m_confirm->clear();
 }

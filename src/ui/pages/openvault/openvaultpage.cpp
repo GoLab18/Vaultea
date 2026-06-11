@@ -60,3 +60,8 @@ OpenVaultPage::OpenVaultPage(QWidget *parent) : QWidget(parent) {
   connect(openBtn, &QPushButton::clicked, this,
           [this]() { emit openRequested(m_path->text(), m_password->text()); });
 }
+
+void OpenVaultPage::clearFields() {
+  m_path->clear();
+  m_password->clear();
+}
