@@ -1,5 +1,6 @@
 #include "vaultpage.h"
 #include "../../controllers/vaultcontroller.h"
+#include "../../theme/thememanager.h"
 #include "ui_vaultpage.h"
 
 #include <QInputDialog>
@@ -35,20 +36,32 @@ void VaultPage::refreshView() { performSearch(ui->searchBar->text()); }
 
 void VaultPage::performSearch(const QString &query) {
   ui->entriesList->clear();
+
   auto entries = m_controller->searchEntries(query);
   for (const auto &entry : entries) {
     auto *item = new QListWidgetItem(QString::fromStdString(entry.name));
     item->setData(Qt::UserRole, QString::fromStdString(entry.id.toString()));
-    item->setIcon(style()->standardIcon(QStyle::SP_FileIcon));
+
+    item->setIcon(ThemeManager::iconForEntryType(entry.type));
+
     ui->entriesList->addItem(item);
   }
 
   ui->foldersList->clear();
   auto folders = m_controller->searchFolders(query);
   for (const auto &folder : folders) {
-    auto *item = new QListWidgetItem(QString::fromStdString(folder.name));
+    auto entriesInFolder = m_controller->getEntriesByFolder(
+        QString::fromStdString(folder.id.toString()));
+
+    QString title = QString::fromStdString(folder.name) + "      (" +
+                    QString::number(entriesInFolder.size()) + ")";
+
+    auto *item = new QListWidgetItem(title);
     item->setData(Qt::UserRole, QString::fromStdString(folder.id.toString()));
-    item->setIcon(style()->standardIcon(QStyle::SP_DirIcon));
+
+    item->setIcon(ThemeManager::colorizedIcon(":/assets/icons/folder.svg",
+                                              ThemeManager::getTextColor()));
+
     ui->foldersList->addItem(item);
   }
 }
