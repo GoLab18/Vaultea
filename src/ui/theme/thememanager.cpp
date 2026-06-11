@@ -36,6 +36,26 @@ QIcon ThemeManager::colorizedIcon(const QString &iconPath, const QColor &color,
   return QIcon(pixmap);
 }
 
+QIcon ThemeManager::iconForEntryType(EntryType type) {
+  QString path;
+  switch (type) {
+  case EntryType::Login:
+    path = ":/assets/icons/key-round.svg";
+    break;
+  case EntryType::Card:
+    path = ":/assets/icons/credit-card.svg";
+    break;
+  case EntryType::Identity:
+    path = ":/assets/icons/id-card.svg";
+    break;
+  case EntryType::Note:
+    path = ":/assets/icons/file-text.svg";
+    break;
+  }
+
+  return colorizedIcon(path, getTextColor());
+}
+
 void ThemeManager::applyTheme(AppTheme theme) {
   currentTheme = theme;
   qApp->setStyle(QStyleFactory::create("Fusion"));

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "models/VaultEntry.h"
+
 #include <QApplication>
 #include <QColor>
 #include <QIcon>
@@ -16,6 +18,8 @@ public:
 
   static QIcon colorizedIcon(const QString &iconPath, const QColor &color,
                              int size = 24);
+
+  static QIcon iconForEntryType(EntryType type);
 
 private:
   static AppTheme currentTheme;
