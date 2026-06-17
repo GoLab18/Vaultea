@@ -16,6 +16,42 @@ Currently, it includes a simple graphical frontend built with Qt6, but the core 
 
 * **Modern Cryptography:** Powered by `libsodium`. Uses **Argon2id** for Key Derivation and **XChaCha20-Poly1305** for entry-level Authenticated Encryption with Associated Data (AEAD).
 
+## Reference Frontend (Qt6)
+
+While the core engine is headless-ready, the repository includes a Qt6 graphical interface, and the current project setup is tied to it. 
+
+> **Note:** This GUI serves as a functional reference implementation (MVP) designed to demonstrate the underlying backend's capabilities, at least for now. It is intentionally simplistic and is yet to receive more polish.
+
+Below is a basic flow demonstrating the vault creation and management process:
+
+### 1. Welcome & Authentication
+
+Users are greeted with an entry point to either create a new secure vault or unlock an existing one:
+<img width="2814" height="1495" alt="image" src="https://github.com/user-attachments/assets/8bd95bd8-9c6a-4748-86d4-adc783e5b234" />
+
+Create vault page:
+<img width="2814" height="1495" alt="image" src="https://github.com/user-attachments/assets/6fdc5df1-5b61-45e3-b6c4-a94821c6e1c7" />
+
+Open vault page:
+<img width="2814" height="1495" alt="image" src="https://github.com/user-attachments/assets/107ecfc8-cb3a-4c63-9ad5-6706da0e0985" />
+
+
+### 2. Vault Management
+
+Once unlocked, the main view provides an interface for navigating folders, searching, and managing credentials:
+<img width="2814" height="1495" alt="image" src="https://github.com/user-attachments/assets/bb3e314a-4aa5-4031-bbee-fa8b387480d1" />
+
+
+Login entry creation page:
+<img width="2814" height="1495" alt="image" src="https://github.com/user-attachments/assets/8937ac1e-3628-4035-b0f2-2af4c30f0b79" />
+
+Identity entry edit page:
+<img width="2814" height="1495" alt="image" src="https://github.com/user-attachments/assets/18ed5538-7837-4914-af10-0a8a07ac2374" />
+
+Folder view page:
+<img width="2814" height="1495" alt="image" src="https://github.com/user-attachments/assets/2169fad7-7104-4e22-bc8f-0049c9aa10e0" />
+
+
 ## Dependencies
 
 To build Vaultea, you need the following installed on your system:
@@ -33,7 +69,7 @@ To build Vaultea, you need the following installed on your system:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/GoLab18/Vaultea.git
+   git clone [https://github.com/GoLab18/Vaultea.git](https://github.com/GoLab18/Vaultea.git)
    cd Vaultea
    ```
 
