@@ -69,7 +69,7 @@ To build Vaultea, you need the following installed on your system:
 
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/GoLab18/Vaultea.git](https://github.com/GoLab18/Vaultea.git)
+   git clone https://github.com/GoLab18/Vaultea.git
    cd Vaultea
    ```
 
