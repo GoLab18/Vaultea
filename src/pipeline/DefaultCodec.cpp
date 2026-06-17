@@ -7,30 +7,25 @@
 
 #include <stdexcept>
 
-DefaultCodec::DefaultCodec(Key masterKey, CompressionType compType)
-    : masterKey(masterKey) {
-  switch (compType) {
-
-  case CompressionType::LZ4:
-    compressor = std::make_unique<LZ4Compressor>();
-    break;
-
-  case CompressionType::Zstd:
-    compressor = std::make_unique<ZstdCompressor>();
-    break;
-
-  case CompressionType::None:
-  default:
-    throw std::invalid_argument(
-        "A valid active compression type must be specified for the codec.");
-  }
-}
+DefaultCodec::DefaultCodec(Key masterKey)
+    : masterKey(masterKey), lz4(std::make_unique<LZ4Compressor>()),
+      zstd(std::make_unique<ZstdCompressor>()) {}
 
 RawBytes DefaultCodec::encodeData(const RawBytes &plain) {
-  auto compressionResult = compressor->compress(plain);
+  CompressionResult compressionResult;
+
+  if (plain.size() < 512) {
+    compressionResult = {.type = CompressionType::None,
+                         .originalSize = static_cast<uint32_t>(plain.size()),
+                         .data = plain};
+
+  } else if (plain.size() >= 512 && plain.size() < 65536) { // 512B to 64KB
+    compressionResult = lz4->compress(plain);
+  } else {
+    compressionResult = zstd->compress(plain);
+  }
 
   auto nonce = CryptoService::generateNonce();
-
   auto ciphertext =
       CryptoService::encrypt(compressionResult.data, masterKey, nonce);
 
@@ -44,17 +39,23 @@ RawBytes DefaultCodec::encodeData(const RawBytes &plain) {
 
 RawBytes DefaultCodec::decodeData(const RawBytes &encoded) {
   auto blob = Serialization::deserializeProcessedBlob(encoded);
-
   auto decrypted =
       CryptoService::decrypt(blob.ciphertext, masterKey, blob.nonce);
 
-  return compressor->decompress(blob.compressionType, decrypted,
-                                blob.originalSize);
+  switch (blob.compressionType) {
+  case CompressionType::None:
+    return decrypted;
+  case CompressionType::LZ4:
+    return lz4->decompress(blob.compressionType, decrypted, blob.originalSize);
+  case CompressionType::Zstd:
+    return zstd->decompress(blob.compressionType, decrypted, blob.originalSize);
+  default:
+    throw std::runtime_error("Unknown compression type detected in blob");
+  }
 }
 
 RawBytes DefaultCodec::encodeIndex(const RawBytes &plain) {
   auto nonce = CryptoService::generateNonce();
-
   auto ciphertext = CryptoService::encrypt(plain, masterKey, nonce);
 
   ProcessedBlob blob{.compressionType = CompressionType::None,
@@ -73,7 +74,6 @@ RawBytes DefaultCodec::decodeIndex(const RawBytes &encoded) {
 
 RawBytes DefaultCodec::encodeHeader(const RawBytes &plain) {
   auto nonce = CryptoService::generateNonce();
-
   auto ciphertext = CryptoService::encrypt(plain, masterKey, nonce);
 
   ProcessedBlob blob{.compressionType = CompressionType::None,

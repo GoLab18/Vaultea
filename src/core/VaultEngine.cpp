@@ -72,7 +72,7 @@ void VaultEngine::initNewVault() {
   header.createdAt = vault::util::time::now();
   header.updatedAt = header.createdAt;
 
-  codec = std::make_unique<DefaultCodec>(masterKey, CompressionType::LZ4);
+  codec = std::make_unique<DefaultCodec>(masterKey);
 
   RawBytes encodedHeader;
   processHeader(encodedHeader);
@@ -111,7 +111,7 @@ bool VaultEngine::openVault(const std::string &path,
   if (!verifyPassword())
     return false;
 
-  codec = std::make_unique<DefaultCodec>(masterKey, CompressionType::LZ4);
+  codec = std::make_unique<DefaultCodec>(masterKey);
 
   auto headerBytes = storage.read(VAULT_PREAMBLE_SIZE, preamble.headerSize);
   unprocessHeader(headerBytes);
