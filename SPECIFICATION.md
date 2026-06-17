@@ -72,7 +72,7 @@ Both Data and Index pages utilize a **Slotted Page Architecture**. Following the
 
 ## 4. Indexing Strategy
 
-Unlike traditional heavy relational databases (e.g., PostgreSQL) that rely on complex, disk-backed B-Trees that must handle extensive node splitting and rebalancing on disk, Vaultea uses a simplified **In-Memory B-Tree Index** powered by Abseil.
+Unlike traditional heavy relational databases (e.g., PostgreSQL) that rely on complex, disk-backed B-Trees that must handle extensive node splitting and rebalancing on disk, Vaultea uses a simplified **In-Memory B-Tree Index** powered by Abseil's B-Tree structures (like `btree_map` and `btree_multimap`).
 
 * **Startup Rebuild:** On startup, the engine scans the `Index` pages and completely rebuilds the B-Tree in memory using the persisted `IndexEntry` metadata (which maps UUIDs to physical `RecordRef` locations). Every subsequent insert/update/delete persists the metadata to the disk index pages while simultaneously updating the in-memory tree.
 * **Why this approach?** Credential vaults typically contain hundreds or thousands of records, not millions. Holding the entire routing index in memory is simpler and more manageable at this scale. It completely bypasses the need for complex on-disk index balancing algorithms, drastically simplifying the storage engine's design while still providing good query performance.
