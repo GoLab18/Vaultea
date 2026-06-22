@@ -6,6 +6,8 @@ Vaultea is a custom-built C++ database engine designed specifically for secure c
 
 Currently, it includes a simple graphical frontend built with Qt6, but the core engine (`src/core`, `src/storage`, etc.) is fully decoupled and can be integrated into TUIs, CLIs, or headless servers.
 
+> **Quick Note:** This project was built both as a functional credential manager and as an exercise to deeply explore and engrain various C++ concepts, hence extensive OOP usage :). As a result, some architectural decisions prioritize structural design and learning over maximizing efficiency.
+
 ## Architecture Highlights
 
 * **Custom Storage Engine:** Implements a custom file format using Slotted Pages and a Freelist manager for efficient disk I/O and space reclamation.
@@ -69,7 +71,7 @@ To build Vaultea, you need the following installed on your system:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/GoLab18/Vaultea.git
+   git clone [https://github.com/GoLab18/Vaultea.git](https://github.com/GoLab18/Vaultea.git)
    cd Vaultea
    ```
 
